@@ -6,14 +6,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Event {
- 
+
     private String id; // unique identifier for the event
     private String name; // name of event
-    private LocalDateTime Date; //date of the event
+    private LocalDateTime Date; // date of the event
     private LocalDateTime startTime; // the start time of the event
     private LocalDateTime endTime; // the end time of the event
     private int duration; // duration of the event
-    private String location; // location of the event 
+    private String location; // location of the event
     private int travelTime; // travel time for the event
     private String status; // shows if this is a block that cannot move or if it is an optional event
     private String description; // description or notes about the event
@@ -21,8 +21,9 @@ public class Event {
     private List<Integer> reminderMinutes; // reminder times in minutes before event
     private String recurrence; // recurrence pattern (NONE, DAILY, WEEKLY, MONTHLY)
 
-   // Constructor for event with all attributes
-    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, int duration, String location, int travelTime, String status) {
+    // Constructor for event with all attributes
+    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, int duration,
+            String location, int travelTime, String status) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.Date = Date;
@@ -45,7 +46,7 @@ public class Event {
         this.recurrence = "NONE";
     }
 
-    // Constructor for event with name, date, and start and end time    
+    // Constructor for event with name, date, and start and end time
     public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
@@ -55,7 +56,7 @@ public class Event {
         this.reminderMinutes = new ArrayList<>();
         this.recurrence = "NONE";
     }
-   
+
     // Constructor for event with name, date, and duration
     public Event(String name, LocalDateTime Date, int duration) {
         this.id = UUID.randomUUID().toString();
@@ -65,7 +66,6 @@ public class Event {
         this.reminderMinutes = new ArrayList<>();
         this.recurrence = "NONE";
     }
-
 
     // Getters and Setters for event attributes
     public String getId() {
@@ -174,12 +174,12 @@ public class Event {
 
     // Calendar utility methods
     public boolean conflictsWith(Event other) {
-        if (this.startTime == null || this.endTime == null || 
-            other.startTime == null || other.endTime == null) {
+        if (this.startTime == null || this.endTime == null ||
+                other.startTime == null || other.endTime == null) {
             return false;
         }
-        return !(this.endTime.isBefore(other.startTime) || 
-                 this.startTime.isAfter(other.endTime));
+        return !(this.endTime.isBefore(other.startTime) ||
+                this.startTime.isAfter(other.endTime));
     }
 
     public boolean isAllDayEvent() {
@@ -193,7 +193,6 @@ public class Event {
     public boolean hasEnded(LocalDateTime now) {
         return now.isAfter(endTime);
     }
-
 
     @Override
     public String toString() {

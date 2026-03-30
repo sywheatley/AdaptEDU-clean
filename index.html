@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdaptEDU</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="logo">AdaptEDU</div>
+            
+            <div class="week-nav">
+                <button class="icon-btn" id="prev-btn">◀</button>
+                <button class="pill-btn" id="today-btn">Today</button>
+                <span class="week-label" id="week-label">Oct 16 – Oct 22, 2023</span>
+                <button class="icon-btn" id="next-btn">▶</button>
+            </div>
+            
+            <div class="actions">
+                <button class="pill-btn" id="add-event-btn">＋ Event</button>
+                <button class="accent-btn" id="add-task-btn">＋ Task</button>
+            </div>
+        </header>
+
+        <div class="main-body">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <div class="section-label">VIEWS</div>
+                    <div class="nav-item active">📅 Week View</div>
+                    <div class="nav-item">📆 Month View</div>
+                    <div class="nav-item">📋 Day View</div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="section-label">TASK CATEGORIES</div>
+                    <div class="category-item"><span class="dot school"></span>School</div>
+                    <div class="category-item"><span class="dot work"></span>Work</div>
+                    <div class="category-item"><span class="dot personal"></span>Personal</div>
+                    <div class="category-item"><span class="dot extra"></span>Extracurricular</div>
+                </div>
+                
+                <div class="sidebar-spacer"></div>
+
+                <!-- Mini Stats -->
+                <div class="mini-stats">
+                    <div class="stat-box"><div class="stat-val blue">12</div><div class="stat-label">Pending</div></div>
+                    <div class="stat-box"><div class="stat-val green">5</div><div class="stat-label">Done</div></div>
+                    <div class="stat-box"><div class="stat-val red">2</div><div class="stat-label">Overdue</div></div>
+                    <div class="stat-box"><div class="stat-val purple">8</div><div class="stat-label">Events</div></div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="content-area">
+                
+                <!-- Weekly Calendar Panel -->
+                <div class="calendar-panel" id="calendar">
+                    <!-- Calendar grid and time blocks will be injected here via JS -->
+                </div>
+
+                <!-- Task List Panel -->
+                <div class="task-list-panel">
+                    <div class="task-list-header">Tasks · Priority Score ↓</div>
+                    <div class="task-list-content" id="task-list">
+                        <!-- Task cards will be injected here via JS -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script src="script.js"></script>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>New Task</h2>
+                <button class="close-btn" id="close-task-modal">&times;</button>
+            </div>
+            <form id="task-form" class="modal-form">
+                <label for="task-name">Task Name *</label>
+                <input type="text" id="task-name" name="task-name" placeholder="e.g., Finish project report" required>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-category">Category</label>
+                        <select id="task-category" name="task-category">
+                            <option value="School">School</option>
+                            <option value="Work">Work</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Extracurricular">Extracurricular</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-due-date">Due Date & Time *</label>
+                        <input type="datetime-local" id="task-due-date" name="task-due-date" required>
+                    </div>
+                </div>
+
+                <label for="task-description">Description</label>
+                <textarea id="task-description" name="task-description" rows="2" placeholder="Optional notes..."></textarea>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-urgency">Urgency (1-10)</label>
+                        <input type="number" id="task-urgency" name="task-urgency" min="1" max="10" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label for="task-priority">Your Priority (1-10)</label>
+                        <input type="number" id="task-priority" name="task-priority" min="1" max="10" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label for="task-estimated-time">Est. Time (mins)</label>
+                        <input type="number" id="task-estimated-time" name="task-estimated-time" min="5" step="5" value="60">
+                    </div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="pill-btn" id="cancel-task-btn">Cancel</button>
+                <button type="submit" form="task-form" class="accent-btn">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Event Modal -->
+    <div id="add-event-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>New Event</h2>
+                <button class="close-btn" id="close-event-modal">&times;</button>
+            </div>
+            <form id="event-form" class="modal-form">
+                <label for="event-name">Event Name *</label>
+                <input type="text" id="event-name" name="event-name" placeholder="e.g., Team Meeting" required>
+                <div class="form-row">
+                    <div class="form-group"><label for="event-start-time">Start Time *</label><input type="datetime-local" id="event-start-time" required></div>
+                    <div class="form-group"><label for="event-end-time">End Time *</label><input type="datetime-local" id="event-end-time" required></div>
+                </div>
+                <label for="event-location">Location</label><input type="text" id="event-location" placeholder="e.g., Conference Room B">
+                <div class="form-row">
+                    <div class="form-group"><label for="event-status">Status</label><select id="event-status"><option value="FIXED">Fixed</option><option value="OPTIONAL">Optional</option></select></div>
+                    <div class="form-group"><label for="event-category">Category</label><select id="event-category"><option value="School">School</option><option value="Work">Work</option><option value="Personal">Personal</option><option value="Extracurricular">Extracurricular</option></select></div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="pill-btn" id="cancel-event-btn">Cancel</button>
+                <button type="submit" form="event-form" class="accent-btn">Save Event</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

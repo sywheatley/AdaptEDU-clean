@@ -12,31 +12,33 @@ import java.util.stream.Collectors;
 public class AdaptEDUApp2 extends JFrame {
 
     // ── Colour palette ───────────────────────────────────────────────
-    static final Color BG_DARK       = new Color(18,  18,  30);
-    static final Color BG_PANEL      = new Color(26,  26,  42);
-    static final Color BG_CARD       = new Color(34,  34,  54);
-    static final Color ACCENT_BLUE   = new Color(99,  102, 241);
-    static final Color ACCENT_PURPLE = new Color(139, 92,  246);
-    static final Color ACCENT_GREEN  = new Color(52,  211, 153);
+    static final Color BG_DARK = new Color(18, 18, 30);
+    static final Color BG_PANEL = new Color(26, 26, 42);
+    static final Color BG_CARD = new Color(34, 34, 54);
+    static final Color ACCENT_BLUE = new Color(99, 102, 241);
+    static final Color ACCENT_PURPLE = new Color(139, 92, 246);
+    static final Color ACCENT_GREEN = new Color(52, 211, 153);
     static final Color ACCENT_ORANGE = new Color(251, 146, 60);
-    static final Color ACCENT_RED    = new Color(248, 113, 113);
-    static final Color TEXT_PRIMARY  = new Color(236, 236, 255);
-    static final Color TEXT_MUTED    = new Color(120, 120, 160);
-    static final Color BORDER_COLOR  = new Color(50,  50,  75);
+    static final Color ACCENT_RED = new Color(248, 113, 113);
+    static final Color TEXT_PRIMARY = new Color(236, 236, 255);
+    static final Color TEXT_MUTED = new Color(120, 120, 160);
+    static final Color BORDER_COLOR = new Color(50, 50, 75);
 
     // ── State ────────────────────────────────────────────────────────
     LocalDate currentWeekStart;
-    List<Task>  tasks  = new ArrayList<>();
+    List<Task> tasks = new ArrayList<>();
     List<Event> events = new ArrayList<>();
 
     WeeklyCalendarPanel calendarPanel;
-    TaskListPanel       taskListPanel;
-    JLabel              weekLabel;
+    TaskListPanel taskListPanel;
+    JLabel weekLabel;
 
     // ── Entry point ──────────────────────────────────────────────────
     public static void main(String[] args) {
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
-        catch (Exception ignored) {}
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {
+        }
         SwingUtilities.invokeLater(() -> new AdaptEDUApp2().setVisible(true));
     }
 
@@ -53,8 +55,8 @@ public class AdaptEDUApp2 extends JFrame {
         getContentPane().setBackground(BG_DARK);
         setLayout(new BorderLayout(0, 0));
 
-        add(buildTopBar(),   BorderLayout.NORTH);
-        add(buildSidebar(),  BorderLayout.WEST);
+        add(buildTopBar(), BorderLayout.NORTH);
+        add(buildSidebar(), BorderLayout.WEST);
         add(buildMainArea(), BorderLayout.CENTER);
     }
 
@@ -76,7 +78,7 @@ public class AdaptEDUApp2 extends JFrame {
         // Week navigation
         JPanel nav = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 12));
         nav.setOpaque(false);
-        JButton prev     = iconButton("◀");
+        JButton prev = iconButton("◀");
         JButton todayBtn = pillButton("Today");
         weekLabel = new JLabel(weekRangeLabel(), SwingConstants.CENTER);
         weekLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
@@ -84,20 +86,32 @@ public class AdaptEDUApp2 extends JFrame {
         weekLabel.setPreferredSize(new Dimension(230, 30));
         JButton next = iconButton("▶");
 
-        prev.addActionListener(e     -> { currentWeekStart = currentWeekStart.minusWeeks(1); refreshAll(); });
-        next.addActionListener(e     -> { currentWeekStart = currentWeekStart.plusWeeks(1);  refreshAll(); });
-        todayBtn.addActionListener(e -> { currentWeekStart = LocalDate.now().with(DayOfWeek.MONDAY); refreshAll(); });
+        prev.addActionListener(e -> {
+            currentWeekStart = currentWeekStart.minusWeeks(1);
+            refreshAll();
+        });
+        next.addActionListener(e -> {
+            currentWeekStart = currentWeekStart.plusWeeks(1);
+            refreshAll();
+        });
+        todayBtn.addActionListener(e -> {
+            currentWeekStart = LocalDate.now().with(DayOfWeek.MONDAY);
+            refreshAll();
+        });
 
-        nav.add(prev); nav.add(todayBtn); nav.add(weekLabel); nav.add(next);
+        nav.add(prev);
+        nav.add(todayBtn);
+        nav.add(weekLabel);
+        nav.add(next);
         bar.add(nav, BorderLayout.CENTER);
 
         // Action buttons
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
         right.setOpaque(false);
         JButton addEvent = pillButton("＋  Event");
-        JButton addTask  = accentButton("＋  Task");
+        JButton addTask = accentButton("＋  Task");
         addEvent.addActionListener(e -> showAddEventDialog());
-        addTask.addActionListener(e  -> showAddTaskDialog());
+        addTask.addActionListener(e -> showAddTaskDialog());
         right.add(addEvent);
         right.add(addTask);
         bar.add(right, BorderLayout.EAST);
@@ -114,36 +128,35 @@ public class AdaptEDUApp2 extends JFrame {
         side.setPreferredSize(new Dimension(220, 0));
         side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
         side.setBorder(new CompoundBorder(
-            new MatteBorder(0, 0, 0, 1, BORDER_COLOR),
-            new EmptyBorder(20, 16, 20, 16)
-        ));
+                new MatteBorder(0, 0, 0, 1, BORDER_COLOR),
+                new EmptyBorder(20, 16, 20, 16)));
 
         side.add(sectionLabel("VIEWS"));
         side.add(Box.createVerticalStrut(6));
-        side.add(navItem("📅  Week View",   true));
-        side.add(navItem("📆  Month View",  false));
-        side.add(navItem("📋  Day View",    false));
+        side.add(navItem("📅  Week View", true));
+        side.add(navItem("📆  Month View", false));
+        side.add(navItem("📋  Day View", false));
         side.add(Box.createVerticalStrut(20));
 
         side.add(sectionLabel("TASK CATEGORIES"));
         side.add(Box.createVerticalStrut(6));
-        side.add(categoryItem("School",           ACCENT_BLUE));
-        side.add(categoryItem("Work",             ACCENT_GREEN));
-        side.add(categoryItem("Personal",         ACCENT_PURPLE));
-        side.add(categoryItem("Extracurricular",  ACCENT_ORANGE));
+        side.add(categoryItem("School", ACCENT_BLUE));
+        side.add(categoryItem("Work", ACCENT_GREEN));
+        side.add(categoryItem("Personal", ACCENT_PURPLE));
+        side.add(categoryItem("Extracurricular", ACCENT_ORANGE));
         side.add(Box.createVerticalStrut(12));
 
         side.add(sectionLabel("EVENTS"));
         side.add(Box.createVerticalStrut(6));
-        side.add(categoryItem("Fixed Event",    ACCENT_RED));
+        side.add(categoryItem("Fixed Event", ACCENT_RED));
         side.add(categoryItem("Optional Event", new Color(180, 180, 200)));
         side.add(Box.createVerticalStrut(20));
 
         side.add(sectionLabel("PRIORITY SCORE"));
         side.add(Box.createVerticalStrut(6));
-        side.add(priorityBadge("■  Overdue / ∞",  ACCENT_RED));
-        side.add(priorityBadge("■  Score > 15",   ACCENT_ORANGE));
-        side.add(priorityBadge("■  Score ≤ 15",   ACCENT_BLUE));
+        side.add(priorityBadge("■  Overdue / ∞", ACCENT_RED));
+        side.add(priorityBadge("■  Score > 15", ACCENT_ORANGE));
+        side.add(priorityBadge("■  Score ≤ 15", ACCENT_BLUE));
 
         side.add(Box.createVerticalGlue());
         side.add(buildMiniStats());
@@ -153,13 +166,13 @@ public class AdaptEDUApp2 extends JFrame {
     JPanel buildMiniStats() {
         JPanel p = new JPanel(new GridLayout(2, 2, 8, 8));
         p.setOpaque(false);
-        long done    = tasks.stream().filter(Task::isCompleted).count();
+        long done = tasks.stream().filter(Task::isCompleted).count();
         long pending = tasks.stream().filter(t -> !t.isCompleted()).count();
         long overdue = tasks.stream().filter(t -> t.isOverdue() && !t.isCompleted()).count();
-        p.add(statBox(String.valueOf(pending),       "Pending",  ACCENT_BLUE));
-        p.add(statBox(String.valueOf(done),          "Done",     ACCENT_GREEN));
-        p.add(statBox(String.valueOf(overdue),       "Overdue",  ACCENT_RED));
-        p.add(statBox(String.valueOf(events.size()), "Events",   ACCENT_PURPLE));
+        p.add(statBox(String.valueOf(pending), "Pending", ACCENT_BLUE));
+        p.add(statBox(String.valueOf(done), "Done", ACCENT_GREEN));
+        p.add(statBox(String.valueOf(overdue), "Overdue", ACCENT_RED));
+        p.add(statBox(String.valueOf(events.size()), "Events", ACCENT_PURPLE));
         return p;
     }
 
@@ -206,25 +219,27 @@ public class AdaptEDUApp2 extends JFrame {
     // WEEKLY CALENDAR PANEL
     // ════════════════════════════════════════════════════════════════
     class WeeklyCalendarPanel extends JPanel {
-        static final int HOUR_H   = 64;
-        static final int TIME_W   = 56;
+        static final int HOUR_H = 64;
+        static final int TIME_W = 56;
         static final int HEADER_H = 52;
-        static final int START_H  = 7;
-        static final int END_H    = 23;
-        static final int HOURS    = END_H - START_H;
+        static final int START_H = 7;
+        static final int END_H = 23;
+        static final int HOURS = END_H - START_H;
 
         WeeklyCalendarPanel() {
             setBackground(BG_DARK);
             setPreferredSize(new Dimension(820, HEADER_H + HOURS * HOUR_H + 20));
         }
 
-        int colWidth() { return Math.max(1, (getWidth() - TIME_W) / 7); }
+        int colWidth() {
+            return Math.max(1, (getWidth() - TIME_W) / 7);
+        }
 
         @Override
         protected void paintComponent(Graphics g0) {
             super.paintComponent(g0);
             Graphics2D g = (Graphics2D) g0;
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,      RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
             int cw = colWidth();
@@ -236,7 +251,7 @@ public class AdaptEDUApp2 extends JFrame {
             g.setColor(BORDER_COLOR);
             g.drawLine(0, HEADER_H - 1, getWidth(), HEADER_H - 1);
 
-            String[] dayNames = {"Mon","Tue","Wed","Thu","Fri","Sat","Sun"};
+            String[] dayNames = { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
             for (int d = 0; d < 7; d++) {
                 LocalDate date = currentWeekStart.plusDays(d);
                 int x = TIME_W + d * cw;
@@ -247,7 +262,7 @@ public class AdaptEDUApp2 extends JFrame {
 
                 if (isToday) {
                     g.setColor(ACCENT_BLUE);
-                    g.fillOval(x + cw/2 - 16, HEADER_H/2 - 2, 32, 32);
+                    g.fillOval(x + cw / 2 - 16, HEADER_H / 2 - 2, 32, 32);
                     g.setColor(Color.WHITE);
                 } else {
                     g.setColor(TEXT_MUTED);
@@ -255,7 +270,8 @@ public class AdaptEDUApp2 extends JFrame {
                 g.setFont(new Font("SansSerif", Font.PLAIN, 11));
                 drawCentered(g, dayNames[d], x, 10, cw, 16);
 
-                if (!isToday) g.setColor(TEXT_PRIMARY);
+                if (!isToday)
+                    g.setColor(TEXT_PRIMARY);
                 g.setFont(new Font("SansSerif", Font.BOLD, 15));
                 drawCentered(g, String.valueOf(date.getDayOfMonth()), x, HEADER_H / 2, cw, 20);
             }
@@ -282,7 +298,7 @@ public class AdaptEDUApp2 extends JFrame {
             LocalTime now = LocalTime.now();
             if (now.getHour() >= START_H && now.getHour() < END_H) {
                 double frac = (now.getHour() - START_H) + now.getMinute() / 60.0;
-                int ty = HEADER_H + (int)(frac * HOUR_H);
+                int ty = HEADER_H + (int) (frac * HOUR_H);
                 g.setColor(ACCENT_RED);
                 g.setStroke(new BasicStroke(2));
                 g.fillOval(TIME_W - 5, ty - 5, 10, 10);
@@ -293,30 +309,33 @@ public class AdaptEDUApp2 extends JFrame {
             // ── Events (drawn first, behind tasks) ───────────────────
             for (Event ev : events) {
                 LocalDateTime evStart = ev.getStartTime();
-                if (evStart == null) continue;
+                if (evStart == null)
+                    continue;
 
                 LocalDate evDate = evStart.toLocalDate();
                 int dayOffset = (int) currentWeekStart.until(evDate, java.time.temporal.ChronoUnit.DAYS);
-                if (dayOffset < 0 || dayOffset > 6) continue;
+                if (dayOffset < 0 || dayOffset > 6)
+                    continue;
 
                 int startH = evStart.getHour();
                 int startM = evStart.getMinute();
                 int durMins = ev.getDuration() > 0 ? ev.getDuration()
-                    : (ev.getEndTime() != null
-                        ? (int) Duration.between(evStart, ev.getEndTime()).toMinutes()
-                        : 60);
+                        : (ev.getEndTime() != null
+                                ? (int) Duration.between(evStart, ev.getEndTime()).toMinutes()
+                                : 60);
 
                 double startFrac = (startH - START_H) + startM / 60.0;
-                double endFrac   = startFrac + durMins / 60.0;
-                if (endFrac <= 0 || startFrac >= HOURS) continue;
+                double endFrac = startFrac + durMins / 60.0;
+                if (endFrac <= 0 || startFrac >= HOURS)
+                    continue;
 
                 int x = TIME_W + dayOffset * cw + 3;
-                int y = HEADER_H + (int)(Math.max(0, startFrac) * HOUR_H);
+                int y = HEADER_H + (int) (Math.max(0, startFrac) * HOUR_H);
                 int w = cw - 6;
-                int h = Math.max(4, (int)((Math.min(HOURS, endFrac) - Math.max(0, startFrac)) * HOUR_H) - 2);
+                int h = Math.max(4, (int) ((Math.min(HOURS, endFrac) - Math.max(0, startFrac)) * HOUR_H) - 2);
 
                 boolean isFixed = "FIXED".equalsIgnoreCase(ev.getStatus());
-                Color evColor   = isFixed ? ACCENT_RED : new Color(180, 180, 200);
+                Color evColor = isFixed ? ACCENT_RED : new Color(180, 180, 200);
 
                 // Subtle fill + border style to distinguish from tasks
                 g.setColor(new Color(evColor.getRed(), evColor.getGreen(), evColor.getBlue(), 35));
@@ -341,28 +360,31 @@ public class AdaptEDUApp2 extends JFrame {
 
             // ── Tasks ────────────────────────────────────────────────
             for (Task t : tasks) {
-                if (t.getDueDate() == null) continue;
+                if (t.getDueDate() == null)
+                    continue;
 
                 LocalDate taskDate = t.getDueDate().toLocalDate();
                 int dayOffset = (int) currentWeekStart.until(taskDate, java.time.temporal.ChronoUnit.DAYS);
-                if (dayOffset < 0 || dayOffset > 6) continue;
+                if (dayOffset < 0 || dayOffset > 6)
+                    continue;
 
                 // Block ends at due time; length = estimatedTime
-                int dueH    = t.getDueDate().getHour();
-                int dueM    = t.getDueDate().getMinute();
+                int dueH = t.getDueDate().getHour();
+                int dueM = t.getDueDate().getMinute();
                 int durMins = t.getEstimatedTime() > 0 ? t.getEstimatedTime() : 60;
 
-                double endFrac   = (dueH - START_H) + dueM / 60.0;
+                double endFrac = (dueH - START_H) + dueM / 60.0;
                 double startFrac = endFrac - durMins / 60.0;
-                if (endFrac <= 0 || startFrac >= HOURS) continue;
+                if (endFrac <= 0 || startFrac >= HOURS)
+                    continue;
 
                 int x = TIME_W + dayOffset * cw + 3;
-                int y = HEADER_H + (int)(Math.max(0, startFrac) * HOUR_H);
+                int y = HEADER_H + (int) (Math.max(0, startFrac) * HOUR_H);
                 int w = cw - 6;
-                int h = Math.max(4, (int)((Math.min(HOURS, endFrac) - Math.max(0, startFrac)) * HOUR_H) - 2);
+                int h = Math.max(4, (int) ((Math.min(HOURS, endFrac) - Math.max(0, startFrac)) * HOUR_H) - 2);
 
                 Color blockColor = taskColor(t);
-                int alpha        = t.isCompleted() ? 70 : 200;
+                int alpha = t.isCompleted() ? 70 : 200;
 
                 // Shadow
                 g.setColor(new Color(0, 0, 0, 50));
@@ -393,7 +415,7 @@ public class AdaptEDUApp2 extends JFrame {
                     g.setColor(new Color(255, 255, 255, 150));
                     g.setFont(new Font("SansSerif", Font.PLAIN, 10));
                     String meta = "Due " + formatTime(dueH, dueM)
-                        + "  ·  " + t.getMinutesRemaining() + "m left";
+                            + "  ·  " + t.getMinutesRemaining() + "m left";
                     drawClipped(g, meta, x + 8, y + 27, w - 12);
                 }
             }
@@ -402,7 +424,7 @@ public class AdaptEDUApp2 extends JFrame {
         void drawCentered(Graphics2D g, String s, int x, int y, int w, int h) {
             FontMetrics fm = g.getFontMetrics();
             g.drawString(s, x + (w - fm.stringWidth(s)) / 2,
-                            y + (h + fm.getAscent() - fm.getDescent()) / 2);
+                    y + (h + fm.getAscent() - fm.getDescent()) / 2);
         }
 
         void drawClipped(Graphics2D g, String s, int x, int y, int maxW) {
@@ -428,9 +450,8 @@ public class AdaptEDUApp2 extends JFrame {
             JPanel header = new JPanel(new BorderLayout());
             header.setBackground(BG_PANEL);
             header.setBorder(new CompoundBorder(
-                new MatteBorder(0, 0, 1, 0, BORDER_COLOR),
-                new EmptyBorder(14, 16, 14, 16)
-            ));
+                    new MatteBorder(0, 0, 1, 0, BORDER_COLOR),
+                    new EmptyBorder(14, 16, 14, 16)));
             JLabel title = new JLabel("Tasks  ·  Priority Score ↓");
             title.setFont(new Font("SansSerif", Font.BOLD, 14));
             title.setForeground(TEXT_PRIMARY);
@@ -455,8 +476,8 @@ public class AdaptEDUApp2 extends JFrame {
 
             // Sort by Task.getPriorityScore() — overdue tasks (∞) float to top
             List<Task> sorted = tasks.stream()
-                .sorted((a, b) -> Double.compare(b.getPriorityScore(), a.getPriorityScore()))
-                .collect(Collectors.toList());
+                    .sorted((a, b) -> Double.compare(b.getPriorityScore(), a.getPriorityScore()))
+                    .collect(Collectors.toList());
 
             if (sorted.isEmpty()) {
                 JLabel empty = new JLabel("  No tasks yet — add one above!");
@@ -472,13 +493,13 @@ public class AdaptEDUApp2 extends JFrame {
 
             // Events this week
             List<Event> weekEvents = events.stream()
-                .filter(ev -> ev.getStartTime() != null)
-                .filter(ev -> {
-                    LocalDate d = ev.getStartTime().toLocalDate();
-                    return !d.isBefore(currentWeekStart) && !d.isAfter(currentWeekStart.plusDays(6));
-                })
-                .sorted(Comparator.comparing(Event::getStartTime))
-                .collect(Collectors.toList());
+                    .filter(ev -> ev.getStartTime() != null)
+                    .filter(ev -> {
+                        LocalDate d = ev.getStartTime().toLocalDate();
+                        return !d.isBefore(currentWeekStart) && !d.isAfter(currentWeekStart.plusDays(6));
+                    })
+                    .sorted(Comparator.comparing(Event::getStartTime))
+                    .collect(Collectors.toList());
 
             if (!weekEvents.isEmpty()) {
                 listContainer.add(Box.createVerticalStrut(10));
@@ -500,18 +521,18 @@ public class AdaptEDUApp2 extends JFrame {
         }
 
         JPanel buildTaskCard(Task t) {
-            double score  = t.getPriorityScore();
-            Color  accent = (score == Double.POSITIVE_INFINITY || score > 15)
-                            ? ACCENT_RED : (score > 8 ? ACCENT_ORANGE : ACCENT_BLUE);
+            double score = t.getPriorityScore();
+            Color accent = (score == Double.POSITIVE_INFINITY || score > 15)
+                    ? ACCENT_RED
+                    : (score > 8 ? ACCENT_ORANGE : ACCENT_BLUE);
 
             JPanel card = new JPanel(new BorderLayout(8, 0));
             card.setBackground(BG_CARD);
             card.setBorder(new CompoundBorder(
-                new LineBorder(
-                    (t.isOverdue() && !t.isCompleted()) ? new Color(248,113,113,100) : BORDER_COLOR,
-                    1, true),
-                new EmptyBorder(10, 12, 10, 12)
-            ));
+                    new LineBorder(
+                            (t.isOverdue() && !t.isCompleted()) ? new Color(248, 113, 113, 100) : BORDER_COLOR,
+                            1, true),
+                    new EmptyBorder(10, 12, 10, 12)));
             card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 82));
             card.setAlignmentX(LEFT_ALIGNMENT);
             card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -522,7 +543,8 @@ public class AdaptEDUApp2 extends JFrame {
             cb.setOpaque(false);
             cb.setFocusPainted(false);
             cb.addActionListener(e -> {
-                if (cb.isSelected()) t.markAsCompleted();
+                if (cb.isSelected())
+                    t.markAsCompleted();
                 calendarPanel.repaint();
                 refresh();
             });
@@ -537,24 +559,26 @@ public class AdaptEDUApp2 extends JFrame {
             name.setForeground(t.isCompleted() ? TEXT_MUTED : TEXT_PRIMARY);
 
             String catStr = (t.getCategory() != null && !t.getCategory().isEmpty())
-                            ? t.getCategory() + "  ·  " : "";
+                    ? t.getCategory() + "  ·  "
+                    : "";
             String dueStr = t.getDueDate() != null
-                ? t.getDueDate().format(DateTimeFormatter.ofPattern("EEE MMM d, h:mm a"))
-                : "No due date";
+                    ? t.getDueDate().format(DateTimeFormatter.ofPattern("EEE MMM d, h:mm a"))
+                    : "No due date";
             JLabel meta = new JLabel(catStr + dueStr);
             meta.setFont(new Font("SansSerif", Font.PLAIN, 11));
             meta.setForeground(TEXT_MUTED);
 
             // Exposes urgency, userPriority, minutesRemaining from Task
             JLabel detail = new JLabel(
-                "Urgency: " + t.getUrgency()
-                + "  ·  Priority: " + t.getUserPriority()
-                + "  ·  " + t.getMinutesRemaining() + "m left"
-            );
+                    "Urgency: " + t.getPriorityScore()
+                            + "  ·  Priority: " + t.getUserPriority()
+                            + "  ·  " + t.getMinutesRemaining() + "m left");
             detail.setFont(new Font("SansSerif", Font.PLAIN, 10));
             detail.setForeground(new Color(140, 140, 180));
 
-            info.add(name); info.add(meta); info.add(detail);
+            info.add(name);
+            info.add(meta);
+            info.add(detail);
             card.add(info, BorderLayout.CENTER);
 
             // Score badge — uses Task.getPriorityScore()
@@ -566,22 +590,28 @@ public class AdaptEDUApp2 extends JFrame {
             card.add(scoreLbl, BorderLayout.EAST);
 
             card.addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) { card.setBackground(new Color(44,44,66)); card.repaint(); }
-                public void mouseExited (MouseEvent e) { card.setBackground(BG_CARD);            card.repaint(); }
+                public void mouseEntered(MouseEvent e) {
+                    card.setBackground(new Color(44, 44, 66));
+                    card.repaint();
+                }
+
+                public void mouseExited(MouseEvent e) {
+                    card.setBackground(BG_CARD);
+                    card.repaint();
+                }
             });
             return card;
         }
 
         JPanel buildEventCard(Event ev) {
             boolean isFixed = "FIXED".equalsIgnoreCase(ev.getStatus());
-            Color accent    = isFixed ? ACCENT_RED : new Color(180, 180, 200);
+            Color accent = isFixed ? ACCENT_RED : new Color(180, 180, 200);
 
             JPanel card = new JPanel(new BorderLayout(10, 0));
             card.setBackground(BG_CARD);
             card.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(10, 12, 10, 12)
-            ));
+                    new LineBorder(BORDER_COLOR, 1, true),
+                    new EmptyBorder(10, 12, 10, 12)));
             card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
             card.setAlignmentX(LEFT_ALIGNMENT);
 
@@ -589,7 +619,8 @@ public class AdaptEDUApp2 extends JFrame {
             JPanel dot = new JPanel() {
                 protected void paintComponent(Graphics g) {
                     super.paintComponent(g);
-                    ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    ((Graphics2D) g).setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                            RenderingHints.VALUE_ANTIALIAS_ON);
                     g.setColor(accent);
                     g.fillOval(0, 4, 10, 10);
                 }
@@ -607,13 +638,15 @@ public class AdaptEDUApp2 extends JFrame {
 
             // Uses Event.getStartTime(), Event.getLocation()
             String timeStr = ev.getStartTime().format(DateTimeFormatter.ofPattern("EEE MMM d, h:mm a"));
-            String locStr  = (ev.getLocation() != null && !ev.getLocation().isEmpty())
-                             ? "  📍 " + ev.getLocation() : "";
+            String locStr = (ev.getLocation() != null && !ev.getLocation().isEmpty())
+                    ? "  📍 " + ev.getLocation()
+                    : "";
             JLabel meta = new JLabel(timeStr + locStr);
             meta.setFont(new Font("SansSerif", Font.PLAIN, 11));
             meta.setForeground(TEXT_MUTED);
 
-            info.add(name); info.add(meta);
+            info.add(name);
+            info.add(meta);
             card.add(info, BorderLayout.CENTER);
 
             // Uses Event.getStatus()
@@ -623,8 +656,15 @@ public class AdaptEDUApp2 extends JFrame {
             card.add(statusLbl, BorderLayout.EAST);
 
             card.addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) { card.setBackground(new Color(44,44,66)); card.repaint(); }
-                public void mouseExited (MouseEvent e) { card.setBackground(BG_CARD);            card.repaint(); }
+                public void mouseEntered(MouseEvent e) {
+                    card.setBackground(new Color(44, 44, 66));
+                    card.repaint();
+                }
+
+                public void mouseExited(MouseEvent e) {
+                    card.setBackground(BG_CARD);
+                    card.repaint();
+                }
             });
             return card;
         }
@@ -646,62 +686,78 @@ public class AdaptEDUApp2 extends JFrame {
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(4, 0, 4, 0);
-        c.weightx = 1; c.gridx = 0;
+        c.weightx = 1;
+        c.gridx = 0;
 
         JTextField nameField = styledField("Task name…");
-        JTextField catField  = styledField("e.g. School, Work, Personal…");
+        JTextField catField = styledField("e.g. School, Work, Personal…");
         JTextField descField = styledField("Optional description…");
         JTextField dateField = styledField(
-            LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + " 17:00"
-        );
+                LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) + " 17:00");
         JSpinner urgSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 10, 1));
         JSpinner uprSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 10, 1));
         JSpinner estSpinner = new JSpinner(new SpinnerNumberModel(60, 5, 480, 5));
-        styleSpinner(urgSpinner); styleSpinner(uprSpinner); styleSpinner(estSpinner);
+        styleSpinner(urgSpinner);
+        styleSpinner(uprSpinner);
+        styleSpinner(estSpinner);
 
         int row = 0;
-        c.gridy = row++;  form.add(formLabel("Task Name *"), c);
-        c.gridy = row++;  form.add(nameField, c);
-        c.gridy = row++;  form.add(formLabel("Category"), c);
-        c.gridy = row++;  form.add(catField, c);
-        c.gridy = row++;  form.add(formLabel("Description"), c);
-        c.gridy = row++;  form.add(descField, c);
-        c.gridy = row++;  form.add(formLabel("Due Date & Time  (YYYY-MM-DD HH:MM) *"), c);
-        c.gridy = row++;  form.add(dateField, c);
-        c.gridy = row++;  form.add(formLabel("Urgency  (1 = low, 10 = critical)"), c);
-        c.gridy = row++;  form.add(urgSpinner, c);
-        c.gridy = row++;  form.add(formLabel("Your Priority  (1 = low, 10 = must do)"), c);
-        c.gridy = row++;  form.add(uprSpinner, c);
-        c.gridy = row++;  form.add(formLabel("Estimated Time  (minutes)"), c);
-        c.gridy = row++;  form.add(estSpinner, c);
+        c.gridy = row++;
+        form.add(formLabel("Task Name *"), c);
+        c.gridy = row++;
+        form.add(nameField, c);
+        c.gridy = row++;
+        form.add(formLabel("Category"), c);
+        c.gridy = row++;
+        form.add(catField, c);
+        c.gridy = row++;
+        form.add(formLabel("Description"), c);
+        c.gridy = row++;
+        form.add(descField, c);
+        c.gridy = row++;
+        form.add(formLabel("Due Date & Time  (YYYY-MM-DD HH:MM) *"), c);
+        c.gridy = row++;
+        form.add(dateField, c);
+        c.gridy = row++;
+        form.add(formLabel("Urgency  (1 = low, 10 = critical)"), c);
+        c.gridy = row++;
+        form.add(urgSpinner, c);
+        c.gridy = row++;
+        form.add(formLabel("Your Priority  (1 = low, 10 = must do)"), c);
+        c.gridy = row++;
+        form.add(uprSpinner, c);
+        c.gridy = row++;
+        form.add(formLabel("Estimated Time  (minutes)"), c);
+        c.gridy = row++;
+        form.add(estSpinner, c);
 
         dlg.add(form, BorderLayout.CENTER);
         dlg.add(buildDialogButtons(dlg, () -> {
             try {
                 String taskName = nameField.getText().trim();
-                if (taskName.isEmpty()) { nameField.setBorder(new LineBorder(ACCENT_RED)); return; }
+                if (taskName.isEmpty()) {
+                    nameField.setBorder(new LineBorder(ACCENT_RED));
+                    return;
+                }
                 LocalDateTime due = LocalDateTime.parse(
-                    dateField.getText().trim(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                );
-                // Full Task constructor: name, category, dueDate, urgency, userPriority,
-                //                        estimatedTime, completed, description
+                        dateField.getText().trim(),
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                // Full Task constructor: name, category, dueDate, userPriority,
+                // estimatedTime, completed, description
                 Task t = new Task(
-                    taskName,
-                    catField.getText().trim().isEmpty() ? null : catField.getText().trim(),
-                    due,
-                    (Integer) urgSpinner.getValue(),
-                    (Integer) uprSpinner.getValue(),
-                    (Integer) estSpinner.getValue(),
-                    false,
-                    descField.getText().trim().isEmpty() ? null : descField.getText().trim()
-                );
+                        taskName,
+                        catField.getText().trim().isEmpty() ? null : catField.getText().trim(),
+                        due,
+                        (Integer) urgSpinner.getValue(),
+                        (Integer) estSpinner.getValue(),
+                        false,
+                        descField.getText().trim().isEmpty() ? null : descField.getText().trim());
                 tasks.add(t);
                 refreshAll();
                 dlg.dispose();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dlg,
-                    "Check date format: YYYY-MM-DD HH:MM\ne.g.  2025-06-15 14:30");
+                        "Check date format: YYYY-MM-DD HH:MM\ne.g.  2025-06-15 14:30");
             }
         }), BorderLayout.SOUTH);
 
@@ -724,59 +780,78 @@ public class AdaptEDUApp2 extends JFrame {
         GridBagConstraints c = new GridBagConstraints();
         c.fill = GridBagConstraints.HORIZONTAL;
         c.insets = new Insets(4, 0, 4, 0);
-        c.weightx = 1; c.gridx = 0;
+        c.weightx = 1;
+        c.gridx = 0;
 
         String today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        JTextField nameField     = styledField("Event name…");
-        JTextField startField    = styledField(today + " 09:00");
-        JTextField endField      = styledField(today + " 10:00");
+        JTextField nameField = styledField("Event name…");
+        JTextField startField = styledField(today + " 09:00");
+        JTextField endField = styledField(today + " 10:00");
         JTextField locationField = styledField("Optional location…");
-        JTextField descField     = styledField("Optional notes…");
+        JTextField descField = styledField("Optional notes…");
         JComboBox<String> statusBox = styledCombo("FIXED", "OPTIONAL");
-        JComboBox<String> catBox    = styledCombo("School","Work","Personal","Extracurricular","Other");
+        JComboBox<String> catBox = styledCombo("School", "Work", "Personal", "Extracurricular", "Other");
         JSpinner travelSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 120, 5));
         styleSpinner(travelSpinner);
 
         int row = 0;
-        c.gridy = row++;  form.add(formLabel("Event Name *"), c);
-        c.gridy = row++;  form.add(nameField, c);
-        c.gridy = row++;  form.add(formLabel("Start  (YYYY-MM-DD HH:MM) *"), c);
-        c.gridy = row++;  form.add(startField, c);
-        c.gridy = row++;  form.add(formLabel("End    (YYYY-MM-DD HH:MM) *"), c);
-        c.gridy = row++;  form.add(endField, c);
-        c.gridy = row++;  form.add(formLabel("Location"), c);
-        c.gridy = row++;  form.add(locationField, c);
-        c.gridy = row++;  form.add(formLabel("Notes"), c);
-        c.gridy = row++;  form.add(descField, c);
-        c.gridy = row++;  form.add(formLabel("Status"), c);
-        c.gridy = row++;  form.add(statusBox, c);
-        c.gridy = row++;  form.add(formLabel("Category"), c);
-        c.gridy = row++;  form.add(catBox, c);
-        c.gridy = row++;  form.add(formLabel("Travel Time  (minutes)"), c);
-        c.gridy = row++;  form.add(travelSpinner, c);
+        c.gridy = row++;
+        form.add(formLabel("Event Name *"), c);
+        c.gridy = row++;
+        form.add(nameField, c);
+        c.gridy = row++;
+        form.add(formLabel("Start  (YYYY-MM-DD HH:MM) *"), c);
+        c.gridy = row++;
+        form.add(startField, c);
+        c.gridy = row++;
+        form.add(formLabel("End    (YYYY-MM-DD HH:MM) *"), c);
+        c.gridy = row++;
+        form.add(endField, c);
+        c.gridy = row++;
+        form.add(formLabel("Location"), c);
+        c.gridy = row++;
+        form.add(locationField, c);
+        c.gridy = row++;
+        form.add(formLabel("Notes"), c);
+        c.gridy = row++;
+        form.add(descField, c);
+        c.gridy = row++;
+        form.add(formLabel("Status"), c);
+        c.gridy = row++;
+        form.add(statusBox, c);
+        c.gridy = row++;
+        form.add(formLabel("Category"), c);
+        c.gridy = row++;
+        form.add(catBox, c);
+        c.gridy = row++;
+        form.add(formLabel("Travel Time  (minutes)"), c);
+        c.gridy = row++;
+        form.add(travelSpinner, c);
 
         dlg.add(form, BorderLayout.CENTER);
         dlg.add(buildDialogButtons(dlg, () -> {
             try {
                 String evName = nameField.getText().trim();
-                if (evName.isEmpty()) { nameField.setBorder(new LineBorder(ACCENT_RED)); return; }
+                if (evName.isEmpty()) {
+                    nameField.setBorder(new LineBorder(ACCENT_RED));
+                    return;
+                }
                 DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
                 LocalDateTime start = LocalDateTime.parse(startField.getText().trim(), fmt);
-                LocalDateTime end   = LocalDateTime.parse(endField.getText().trim(),   fmt);
+                LocalDateTime end = LocalDateTime.parse(endField.getText().trim(), fmt);
                 int dur = (int) Duration.between(start, end).toMinutes();
 
                 // Full Event constructor: name, date, startTime, endTime, duration,
-                //                         location, travelTime, status
+                // location, travelTime, status
                 Event ev = new Event(
-                    evName,
-                    start,          // date = start date
-                    start,
-                    end,
-                    Math.max(0, dur),
-                    locationField.getText().trim().isEmpty() ? null : locationField.getText().trim(),
-                    (Integer) travelSpinner.getValue(),
-                    (String) statusBox.getSelectedItem()
-                );
+                        evName,
+                        start, // date = start date
+                        start,
+                        end,
+                        Math.max(0, dur),
+                        locationField.getText().trim().isEmpty() ? null : locationField.getText().trim(),
+                        (Integer) travelSpinner.getValue(),
+                        (String) statusBox.getSelectedItem());
                 ev.setCategory((String) catBox.getSelectedItem());
                 if (!descField.getText().trim().isEmpty())
                     ev.setDescription(descField.getText().trim());
@@ -786,7 +861,7 @@ public class AdaptEDUApp2 extends JFrame {
                 dlg.dispose();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dlg,
-                    "Check date format: YYYY-MM-DD HH:MM\ne.g.  2025-06-15 14:30");
+                        "Check date format: YYYY-MM-DD HH:MM\ne.g.  2025-06-15 14:30");
             }
         }), BorderLayout.SOUTH);
 
@@ -807,18 +882,19 @@ public class AdaptEDUApp2 extends JFrame {
     String weekRangeLabel() {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM d");
         return currentWeekStart.format(fmt) + " – "
-             + currentWeekStart.plusDays(6).format(fmt)
-             + ", " + currentWeekStart.getYear();
+                + currentWeekStart.plusDays(6).format(fmt)
+                + ", " + currentWeekStart.getYear();
     }
 
     Color taskColor(Task t) {
-        if (t.getCategory() == null) return ACCENT_BLUE;
+        if (t.getCategory() == null)
+            return ACCENT_BLUE;
         return switch (t.getCategory().toLowerCase()) {
-            case "school"          -> ACCENT_BLUE;
-            case "work"            -> ACCENT_GREEN;
-            case "personal"        -> ACCENT_PURPLE;
+            case "school" -> ACCENT_BLUE;
+            case "work" -> ACCENT_GREEN;
+            case "personal" -> ACCENT_PURPLE;
             case "extracurricular" -> ACCENT_ORANGE;
-            default                -> ACCENT_BLUE;
+            default -> ACCENT_BLUE;
         };
     }
 
@@ -868,7 +944,8 @@ public class AdaptEDUApp2 extends JFrame {
         cancel.addActionListener(e -> dlg.dispose());
         JButton save = accentButton("Save");
         save.addActionListener(e -> onSave.run());
-        btns.add(cancel); btns.add(save);
+        btns.add(cancel);
+        btns.add(save);
         return btns;
     }
 
@@ -882,11 +959,10 @@ public class AdaptEDUApp2 extends JFrame {
 
     JPanel navItem(String text, boolean active) {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(active ? new Color(99,102,241,40) : BG_PANEL);
+        p.setBackground(active ? new Color(99, 102, 241, 40) : BG_PANEL);
         p.setBorder(new CompoundBorder(
-            active ? new LineBorder(new Color(99,102,241,80), 1, true) : new EmptyBorder(0,0,0,0),
-            new EmptyBorder(8, 10, 8, 10)
-        ));
+                active ? new LineBorder(new Color(99, 102, 241, 80), 1, true) : new EmptyBorder(0, 0, 0, 0),
+                new EmptyBorder(8, 10, 8, 10)));
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
         JLabel l = new JLabel(text);
         l.setFont(new Font("SansSerif", Font.PLAIN, 13));
@@ -902,7 +978,7 @@ public class AdaptEDUApp2 extends JFrame {
         JPanel dot = new JPanel() {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                ((Graphics2D)g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                ((Graphics2D) g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g.setColor(color);
                 g.fillOval(0, 3, 10, 10);
             }
@@ -912,7 +988,8 @@ public class AdaptEDUApp2 extends JFrame {
         JLabel l = new JLabel(name);
         l.setFont(new Font("SansSerif", Font.PLAIN, 12));
         l.setForeground(TEXT_PRIMARY);
-        p.add(dot); p.add(l);
+        p.add(dot);
+        p.add(l);
         return p;
     }
 
@@ -934,9 +1011,8 @@ public class AdaptEDUApp2 extends JFrame {
         f.setCaretColor(TEXT_PRIMARY);
         f.setFont(new Font("SansSerif", Font.PLAIN, 13));
         f.setBorder(new CompoundBorder(
-            new LineBorder(BORDER_COLOR, 1, true),
-            new EmptyBorder(8, 10, 8, 10)
-        ));
+                new LineBorder(BORDER_COLOR, 1, true),
+                new EmptyBorder(8, 10, 8, 10)));
         return f;
     }
 
@@ -967,24 +1043,28 @@ public class AdaptEDUApp2 extends JFrame {
     void seedDemoData() {
         LocalDate mon = LocalDate.now().with(DayOfWeek.MONDAY);
 
-        // Task(name, category, dueDate, urgency, userPriority, estimatedTime, completed, description)
-        tasks.add(new Task("Math Homework",       "School",          mon.atTime(17, 0),               9, 8, 90,  false, "Chapter 5 problems 1–20"));
-        tasks.add(new Task("History Essay Draft", "School",          mon.plusDays(1).atTime(23, 59),  7, 7, 120, false, "Thesis + 3 body paragraphs"));
-        tasks.add(new Task("Physics Lab Report",  "School",          mon.plusDays(2).atTime(12, 0),   6, 6, 60,  false, null));
-        tasks.add(new Task("College App Essay",   "School",          mon.plusDays(3).atTime(23, 59), 10, 9, 120, false, "Common App personal statement"));
-        tasks.add(new Task("Work Report",         "Work",            mon.plusDays(4).atTime(17, 0),   5, 5, 90,  false, null));
-        tasks.add(new Task("Weekend Reading",     "Personal",        mon.plusDays(5).atTime(20, 0),   2, 3, 60,  false, null));
-        tasks.add(new Task("Overdue Assignment",  "School",          mon.minusDays(1).atTime(12, 0),  8, 8, 45,  false, "This is overdue!"));
+        // Task(name, category, dueDate, userPriority, estimatedTime, completed,
+        // description)
+        tasks.add(new Task("Math Homework", "School", mon.atTime(17, 0), 8, 90, false, "Chapter 5 problems 1–20"));
+        tasks.add(new Task("History Essay Draft", "School", mon.plusDays(1).atTime(23, 59), 7, 120, false,
+                "Thesis + 3 body paragraphs"));
+        tasks.add(new Task("Physics Lab Report", "School", mon.plusDays(2).atTime(12, 0), 6, 60, false, null));
+        tasks.add(new Task("College App Essay", "School", mon.plusDays(3).atTime(23, 59), 9, 120, false,
+                "Common App personal statement"));
+        tasks.add(new Task("Work Report", "Work", mon.plusDays(4).atTime(17, 0), 5, 90, false, null));
+        tasks.add(new Task("Weekend Reading", "Personal", mon.plusDays(5).atTime(20, 0), 3, 60, false, null));
+        tasks.add(new Task("Overdue Assignment", "School", mon.minusDays(1).atTime(12, 0), 8, 45, false,
+                "This is overdue!"));
 
         // Event(name, date, startTime, endTime, duration, location, travelTime, status)
-        LocalDateTime schoolS = mon.atTime(8, 0),  schoolE  = mon.atTime(15, 0);
-        LocalDateTime pracS   = mon.plusDays(1).atTime(16, 30), pracE = mon.plusDays(1).atTime(18, 0);
-        LocalDateTime shiftS  = mon.plusDays(2).atTime(15, 0),  shiftE = mon.plusDays(2).atTime(19, 0);
-        LocalDateTime clubS   = mon.plusDays(3).atTime(15, 0),  clubE  = mon.plusDays(3).atTime(16, 0);
+        LocalDateTime schoolS = mon.atTime(8, 0), schoolE = mon.atTime(15, 0);
+        LocalDateTime pracS = mon.plusDays(1).atTime(16, 30), pracE = mon.plusDays(1).atTime(18, 0);
+        LocalDateTime shiftS = mon.plusDays(2).atTime(15, 0), shiftE = mon.plusDays(2).atTime(19, 0);
+        LocalDateTime clubS = mon.plusDays(3).atTime(15, 0), clubE = mon.plusDays(3).atTime(16, 0);
 
-        events.add(new Event("School",          schoolS, schoolS, schoolE, 420, "High School",  15, "FIXED"));
-        events.add(new Event("Soccer Practice", pracS,   pracS,   pracE,    90, "Sports Field", 10, "FIXED"));
-        events.add(new Event("Work Shift",      shiftS,  shiftS,  shiftE,  240, "Part-time Job", 20, "FIXED"));
-        events.add(new Event("Club Meeting",    clubS,   clubS,   clubE,    60, "Room 204",       0, "OPTIONAL"));
+        events.add(new Event("School", schoolS, schoolS, schoolE, 420, "High School", 15, "FIXED"));
+        events.add(new Event("Soccer Practice", pracS, pracS, pracE, 90, "Sports Field", 10, "FIXED"));
+        events.add(new Event("Work Shift", shiftS, shiftS, shiftE, 240, "Part-time Job", 20, "FIXED"));
+        events.add(new Event("Club Meeting", clubS, clubS, clubE, 60, "Room 204", 0, "OPTIONAL"));
     }
 }

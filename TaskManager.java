@@ -41,12 +41,13 @@ public class TaskManager {
     }
 
     public void sortByUrgency() {
-        ArrayList<Task> sortedTasks = new ArrayList<>();
-        for (int i = tasks.size() - 1; i >= 0; i--) {
-            sortedTasks.add(getMostUrgentTask());
-            removeTask(getMostUrgentTask());
+        tasks.sort((t1, t2) -> Double.compare(t2.getPriorityScore(), t1.getPriorityScore()));
+    }
+
+    public void printTasks() {
+        for (Task task : tasks) {
+            System.out.println(task.getName() + " - Due: " + task.getDueDate());
         }
-        tasks = sortedTasks;
     }
 
 }

@@ -7,9 +7,9 @@ public class TaskTester {
         TaskManager manager = new TaskManager();
 
         // Create some tasks
-        Task task1 = new Task("Finish report", LocalDateTime.now().plusDays(2), 5, 3, 120, false);
-        Task task2 = new Task("Buy groceries", LocalDateTime.now().plusHours(5), 3, 4, 30, false);
-        Task task3 = new Task("Call mom", LocalDateTime.now().plusHours(1), 4, 5, 15, false);
+        Task task1 = new Task("Finish report", LocalDateTime.now().plusDays(2), 5, 120, false);
+        Task task2 = new Task("Buy groceries", LocalDateTime.now().plusHours(5), 3, 30, false);
+        Task task3 = new Task("Call mom", LocalDateTime.now().plusHours(1), 4, 15, false);
 
         // Add tasks to manager
         manager.addTask(task1);
@@ -17,19 +17,24 @@ public class TaskTester {
         manager.addTask(task3);
 
         // Print tasks by urgency
-        System.out.println("Tasks by Urgency:");
-        manager.printTasksByUrgency();
+        // System.out.println("Tasks by Urgency:");
+        // manager.printTasksByUrgency();
 
         // Print tasks by due date
-        System.out.println("\nTasks by Due Date:");
-        manager.printTasksByDueDate();
+        // System.out.println("\nTasks by Due Date:");
+        // manager.printTasksByDueDate();
 
         // Get most urgent task
-        Task mostUrgent = manager.getMostUrgentTask();
-        System.out.println("\nMost Urgent Task: " + mostUrgent.getName());
+        // Task mostUrgent = manager.getMostUrgentTask();
+        // System.out.println("\nMost Urgent Task: " + mostUrgent.getName());
 
-        // 
+        manager.printTasks();
+
+        manager.sortByUrgency();
+
+        manager.printTasks();
+
+        //
     }
-
 
 }

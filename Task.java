@@ -1,11 +1,10 @@
 import java.time.LocalDateTime;
 
 public class Task {
-    private String name; // Task name 
+    private String name; // Task name
     private String category; // Category for the task
     private LocalDateTime dueDate; // Task due date and time
-    private int urgency; // Urgency level (1-10)
-    private int userPriority; // 
+    private int userPriority; //
     private int estimatedTime; // Estimated time to complete in minutes
     private boolean completed; // Whether the task is completed
     private String description; // Optional description of the task
@@ -18,21 +17,20 @@ public class Task {
     }
 
     // Constructor for task with all attributes
-    public Task(String name, LocalDateTime dueDate, int urgency, int userPriority, int estimatedTime, boolean completed) {
+    public Task(String name, LocalDateTime dueDate, int userPriority, int estimatedTime, boolean completed) {
         this.name = name;
         this.dueDate = dueDate;
-        this.urgency = urgency;
         this.userPriority = userPriority;
         this.estimatedTime = estimatedTime;
         this.completed = completed;
     }
-    
+
     // Constructor for task with all attributes including description
-    public Task(String name, String category, LocalDateTime dueDate, int urgency, int userPriority, int estimatedTime, boolean completed, String description) {
+    public Task(String name, String category, LocalDateTime dueDate, int userPriority, int estimatedTime,
+            boolean completed, String description) {
         this.name = name;
         this.category = category;
         this.dueDate = dueDate;
-        this.urgency = urgency;
         this.userPriority = userPriority;
         this.estimatedTime = estimatedTime;
         this.completed = completed;
@@ -43,15 +41,13 @@ public class Task {
     public String getName() {
         return name;
     }
+
     public String getCategory() {
         return category;
     }
+
     public LocalDateTime getDueDate() {
         return dueDate;
-    }   
-
-        public int getUrgency() {
-        return urgency;
     }
 
     public int getUserPriority() {
@@ -70,40 +66,36 @@ public class Task {
         return description;
     }
 
-
     // Returns the number of minutes until the task is due
     public long getMinutesTillDue() {
         LocalDateTime now = LocalDateTime.now();
         return java.time.Duration.between(now, dueDate).toMinutes();
     }
 
-    //Returns the number of hours until the task is due
+    // Returns the number of hours until the task is due
     public long getHoursUntilDue() {
         LocalDateTime now = LocalDateTime.now();
-        return java.time.Duration.between(now, dueDate).toHours(); 
+        return java.time.Duration.between(now, dueDate).toHours();
     }
 
-
-    // Calculates a priority score based on urgency, user priority, and time until due date
-    public double getTimePressure(){
+    // Calculates a priority score based on urgency, user priority, and time until
+    // due date
+    public double getTimePressure() {
         long hours = getHoursUntilDue();
         if (hours <= 0) {
             return 10;
-        }
-        else {
-            return 1.0 / (hours + 1);
+        } else {
+            return 10.0 / (hours + 1);
         }
     }
-    
+
     public double getPriorityScore() {
         long hoursUntilDue = getHoursUntilDue();
         if (hoursUntilDue <= 0) {
             return Double.POSITIVE_INFINITY; // Overdue tasks have highest priority
         }
-        
-        double timePressure = 1.0 / (hoursUntilDue + 1); // More time pressure as due date approaches
-        
-        return (urgency + userPriority + timePressure); // Higher urgency and closer due date increases priority
+
+        return (userPriority + 2 * getTimePressure()); // Higher user priority and closer due date increases priority
     }
 
     // Marks the task as completed
@@ -120,11 +112,6 @@ public class Task {
         return Math.max(0, estimatedTime - minutesSpent);
     }
 
-    // updates 
-    public void updateUrgency(int urgency) {
-        this.urgency = Math.max(1, Math.min(10, urgency)); // Ensure urgency is between 1 and 10
-    }
-
     public void updateUserPriority(int userPriority) {
         this.userPriority = Math.max(1, Math.min(10, userPriority)); // Ensure user priority is between 1 and 10
     }
@@ -137,7 +124,7 @@ public class Task {
         this.estimatedTime = Math.max(0, estimatedTime); // Ensure estimated time is non-negative
     }
 
-    //overdo
+    // overdo
     public boolean isOverdue() {
         return LocalDateTime.now().isAfter(dueDate);
     }

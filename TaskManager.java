@@ -17,9 +17,9 @@ public class TaskManager {
     }
 
     public void printTasksByUrgency() {
-        tasks.sort((t1, t2) -> Integer.compare(t2.getUrgency(), t1.getUrgency()));
+        tasks.sort((t1, t2) -> Double.compare(t2.getPriorityScore(), t1.getPriorityScore()));
         for (Task task : tasks) {
-            System.out.println(task.getName() + " - Urgency: " + task.getUrgency());
+            System.out.println(task.getName() + " - Urgency: " + task.getPriorityScore());
         }
     }
 
@@ -33,13 +33,20 @@ public class TaskManager {
     public Task getMostUrgentTask() {
         Task urgent = tasks.get(0);
         for (Task task : tasks) {
-            if (task.getUrgency() > urgent.getUrgency()) {
+            if (task.getPriorityScore() > urgent.getPriorityScore()) {
                 urgent = task;
             }
         }
         return urgent;
     }
 
-
+    public void sortByUrgency() {
+        ArrayList<Task> sortedTasks = new ArrayList<>();
+        for (int i = tasks.size() - 1; i >= 0; i--) {
+            sortedTasks.add(getMostUrgentTask());
+            removeTask(getMostUrgentTask());
+        }
+        tasks = sortedTasks;
+    }
 
 }

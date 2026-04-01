@@ -5,24 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AdaptEDU</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
-        
+
         <!-- Top Bar -->
         <header class="top-bar">
             <div class="logo">AdaptEDU</div>
-            
             <div class="week-nav">
-                <button class="icon-btn" id="prev-btn">◀</button>
+                <button class="icon-btn" id="prev-btn">&#8249;</button>
                 <button class="pill-btn" id="today-btn">Today</button>
-                <span class="week-label" id="week-label">Oct 16 – Oct 22, 2023</span>
-                <button class="icon-btn" id="next-btn">▶</button>
+                <span class="week-label" id="week-label"></span>
+                <button class="icon-btn" id="next-btn">&#8250;</button>
             </div>
-            
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="week">Week</button>
+                <button class="view-btn" data-view="month">Month</button>
+                <button class="view-btn" data-view="day">Day</button>
+            </div>
             <div class="actions">
-                <button class="pill-btn" id="add-event-btn">＋ Event</button>
-                <button class="accent-btn" id="add-task-btn">＋ Task</button>
+                <button class="pill-btn" id="add-event-btn">+ Event</button>
+                <button class="accent-btn" id="add-task-btn">+ Task</button>
             </div>
         </header>
 
@@ -30,52 +35,51 @@
             <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="sidebar-section">
-                    <div class="section-label">VIEWS</div>
-                    <div class="nav-item active">📅 Week View</div>
-                    <div class="nav-item">📆 Month View</div>
-                    <div class="nav-item">📋 Day View</div>
-                </div>
-
-                <div class="sidebar-section">
-                    <div class="section-label">TASK CATEGORIES</div>
+                    <div class="section-label">CALENDARS</div>
                     <div class="category-item"><span class="dot school"></span>School</div>
                     <div class="category-item"><span class="dot work"></span>Work</div>
                     <div class="category-item"><span class="dot personal"></span>Personal</div>
-                    <div class="category-item"><span class="dot extra"></span>Extracurricular</div>
+                    <div class="category-item"><span class="dot extracurricular"></span>Extracurricular</div>
+                    <div class="category-item"><span class="dot other"></span>Other</div>
                 </div>
-                
                 <div class="sidebar-spacer"></div>
-
-                <!-- Mini Stats -->
                 <div class="mini-stats">
-                    <div class="stat-box"><div class="stat-val blue">12</div><div class="stat-label">Pending</div></div>
-                    <div class="stat-box"><div class="stat-val green">5</div><div class="stat-label">Done</div></div>
-                    <div class="stat-box"><div class="stat-val red">2</div><div class="stat-label">Overdue</div></div>
-                    <div class="stat-box"><div class="stat-val purple">8</div><div class="stat-label">Events</div></div>
+                    <div class="stat-box"><div class="stat-val blue" id="stat-pending">0</div><div class="stat-label">Pending</div></div>
+                    <div class="stat-box"><div class="stat-val green" id="stat-done">0</div><div class="stat-label">Done</div></div>
+                    <div class="stat-box"><div class="stat-val red" id="stat-overdue">0</div><div class="stat-label">Overdue</div></div>
+                    <div class="stat-box"><div class="stat-val purple" id="stat-events">0</div><div class="stat-label">Events</div></div>
                 </div>
             </aside>
 
             <!-- Main Content Area -->
             <main class="content-area">
-                
-                <!-- Weekly Calendar Panel -->
-                <div class="calendar-panel" id="calendar">
-                    <!-- Calendar grid and time blocks will be injected here via JS -->
-                </div>
+                <div class="calendar-panel" id="calendar"></div>
 
-                <!-- Task List Panel -->
+                <!-- Task / Archive Panel -->
                 <div class="task-list-panel">
-                    <div class="task-list-header">Tasks · Priority Score ↓</div>
-                    <div class="task-list-content" id="task-list">
-                        <!-- Task cards will be injected here via JS -->
+                    <div class="task-panel-tabs">
+                        <button class="tab-btn active" data-tab="tasks">Tasks</button>
+                        <button class="tab-btn" data-tab="archive">Archive</button>
                     </div>
+                    <div class="task-list-subheader" id="task-list-subheader">Priority Score ↓</div>
+                    <div class="task-list-content" id="task-list"></div>
                 </div>
             </main>
         </div>
     </div>
-    <script src="script.js"></script>
 
-    <!-- Add Task Modal -->
+    <!-- ── Detail Popover ─────────────────────────────────── -->
+    <div id="detail-popover" class="detail-popover hidden">
+        <div class="popover-header">
+            <div class="popover-dot" id="popover-dot"></div>
+            <div class="popover-title" id="popover-title"></div>
+            <button class="close-btn" id="close-popover">&times;</button>
+        </div>
+        <div class="popover-body" id="popover-body"></div>
+        <div class="popover-footer" id="popover-footer"></div>
+    </div>
+
+    <!-- ── Add Task Modal ────────────────────────────────── -->
     <div id="add-task-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -85,7 +89,6 @@
             <form id="task-form" class="modal-form">
                 <label for="task-name">Task Name *</label>
                 <input type="text" id="task-name" name="task-name" placeholder="e.g., Finish project report" required>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label for="task-category">Category</label>
@@ -98,14 +101,12 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="task-due-date">Due Date & Time *</label>
+                        <label for="task-due-date">Due Date &amp; Time *</label>
                         <input type="datetime-local" id="task-due-date" name="task-due-date" required>
                     </div>
                 </div>
-
                 <label for="task-description">Description</label>
                 <textarea id="task-description" name="task-description" rows="2" placeholder="Optional notes..."></textarea>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label for="task-urgency">Urgency (1-10)</label>
@@ -128,7 +129,7 @@
         </div>
     </div>
 
-    <!-- Add Event Modal -->
+    <!-- ── Add Event Modal ───────────────────────────────── -->
     <div id="add-event-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -142,10 +143,22 @@
                     <div class="form-group"><label for="event-start-time">Start Time *</label><input type="datetime-local" id="event-start-time" required></div>
                     <div class="form-group"><label for="event-end-time">End Time *</label><input type="datetime-local" id="event-end-time" required></div>
                 </div>
-                <label for="event-location">Location</label><input type="text" id="event-location" placeholder="e.g., Conference Room B">
+                <label for="event-location">Location</label>
+                <input type="text" id="event-location" placeholder="e.g., Room 204">
                 <div class="form-row">
-                    <div class="form-group"><label for="event-status">Status</label><select id="event-status"><option value="FIXED">Fixed</option><option value="OPTIONAL">Optional</option></select></div>
-                    <div class="form-group"><label for="event-category">Category</label><select id="event-category"><option value="School">School</option><option value="Work">Work</option><option value="Personal">Personal</option><option value="Extracurricular">Extracurricular</option></select></div>
+                    <div class="form-group">
+                        <label for="event-status">Status</label>
+                        <select id="event-status"><option value="FIXED">Fixed</option><option value="OPTIONAL">Optional</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-category">Category</label>
+                        <select id="event-category">
+                            <option value="School">School</option>
+                            <option value="Work">Work</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Extracurricular">Extracurricular</option>
+                        </select>
+                    </div>
                 </div>
             </form>
             <div class="modal-footer">
@@ -154,5 +167,7 @@
             </div>
         </div>
     </div>
+
+    <script src="script.js"></script>
 </body>
 </html>

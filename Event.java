@@ -190,6 +190,11 @@ public class Event {
         return now.isAfter(startTime) || now.isEqual(startTime);
     }
 
+    public boolean hasEnded(LocalDateTime now) {
+        return now.isAfter(endTime);
+    }
+
+
     @Override
     public String toString() {
         return "Event{" +

@@ -1,0 +1,15 @@
+name,startTime,endTime,duration,location,travelTime,status,category,description
+Sunday Brunch,2024-05-19T10:00:00,2024-05-19T11:30:00,90,Cafe,15,FIXED_EVENT,Personal,Brunch with friends
+Morning Meeting,2024-05-20T09:00:00,2024-05-20T10:00:00,60,Office,15,FIXED_EVENT,Work,Weekly sync
+Lunch Break,2024-05-20T12:00:00,2024-05-20T13:00:00,60,Cafe,5,FIXED_EVENT,Personal,Lunch with team
+Doctor Appointment,2024-05-20T15:30:00,2024-05-20T16:30:00,60,Clinic,30,FIXED_EVENT,Health,Routine checkup
+Lecture,2024-05-21T10:00:00,2024-05-21T11:30:00,90,Campus,20,FIXED_EVENT,School,Computer Science Lecture
+Gym,2024-05-21T17:00:00,2024-05-21T18:00:00,60,Gym,10,FIXED_EVENT,Health,Workout
+Morning Meeting,2024-05-22T09:00:00,2024-05-22T10:00:00,60,Office,15,FIXED_EVENT,Work,Weekly sync
+Lab Session,2024-05-22T13:00:00,2024-05-22T15:00:00,120,Campus,20,FIXED_EVENT,School,Physics Lab
+Study Group,2024-05-23T11:00:00,2024-05-23T12:00:00,60,Library,10,FIXED_EVENT,School,Group Project Meeting
+Seminar,2024-05-23T14:00:00,2024-05-23T15:00:00,60,Campus,15,FIXED_EVENT,School,Guest Speaker
+Morning Meeting,2024-05-24T09:00:00,2024-05-24T10:00:00,60,Office,15,FIXED_EVENT,Work,Weekly sync
+Movie Night,2024-05-24T20:00:00,2024-05-24T22:30:00,150,Cinema,20,FIXED_EVENT,Personal,Watching new release
+Volunteer Work,2024-05-25T09:00:00,2024-05-25T12:00:00,180,Community Center,15,FIXED_EVENT,Work,Helping out
+Family Dinner,2024-05-25T18:00:00,2024-05-25T20:00:00,120,Home,0,FIXED_EVENT,Personal,Dinner with family

@@ -3,149 +3,219 @@
 //           archive (completed items move to archive tab, not disappear)
 //           distinct category colors · Apple Calendar UX
 
+/**
+ * Represents a task with properties like name, category, due date, urgency, etc.
+ * Includes methods to calculate priority score and check if overdue.
+ */
 class Task {
+    /**
+     * Creates a new Task instance.
+     * @param {string} name - The name of the task.
+     * @param {string} category - The category of the task (e.g., 'school', 'work').
+     * @param {string|Date} dueDate - The due date and time.
+     * @param {number} urgency - Urgency level (1-10).
+     * @param {number} userPriority - User's priority level (1-10).
+     * @param {number} estimatedTime - Estimated time in minutes.
+     * @param {string} [description=''] - Optional description.
+     * @param {boolean} [completed=false] - Whether the task is completed.
+     */
     constructor(name, category, dueDate, urgency, userPriority, estimatedTime, description = '', completed = false) {
-        this.id = `task_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        this.type = 'task';
-        this.name = name;
-        this.category = (category || 'other').toLowerCase();
-        this.dueDate = new Date(dueDate);
-        this.urgency = parseInt(urgency) || 5;
-        this.userPriority = parseInt(userPriority) || 5;
-        this.estimatedTime = parseInt(estimatedTime) || 60;
-        this.description = description;
-        this.completed = completed;
-        this.archived = false;
-        this.minutesSpent = 0;
-        this.archivedAt = null;
+        this.id = `task_${Date.now()}_${Math.random().toString(36).slice(2)}`; // Unique ID for the task
+        this.type = 'task'; // Type identifier
+        this.name = name; // Task name
+        this.category = (category || 'other').toLowerCase(); // Normalized category
+        this.dueDate = new Date(dueDate); // Due date as Date object
+        this.urgency = parseInt(urgency) || 5; // Urgency score
+        this.userPriority = parseInt(userPriority) || 5; // User priority score
+        this.estimatedTime = parseInt(estimatedTime) || 60; // Estimated time in minutes
+        this.description = description; // Task description
+        this.completed = completed; // Completion status
+        this.archived = false; // Archive status
+        this.minutesSpent = 0; // Time spent on task
+        this.archivedAt = null; // Archive timestamp
     }
+
+    /**
+     * Calculates hours until due date.
+     * @returns {number} Hours until due.
+     */
     getHoursUntilDue() { return (this.dueDate - new Date()) / 3600000; }
+
+    /**
+     * Checks if the task is overdue.
+     * @returns {boolean} True if overdue.
+     */
     isOverdue() { return !this.completed && new Date() > this.dueDate; }
+
+    /**
+     * Calculates the priority score based on urgency, priority, and time until due.
+     * @returns {number} Priority score (higher is more urgent).
+     */
     getPriorityScore() {
-        if (this.isOverdue()) return Infinity;
-        if (this.completed) return -1;
-        const tp = 10.0 / (this.getHoursUntilDue() + 1);
-        return this.urgency + this.userPriority + tp;
+        if (this.isOverdue()) return Infinity; // Overdue tasks have highest priority
+        if (this.completed) return -1; // Completed tasks have lowest priority
+        const tp = 10.0 / (this.getHoursUntilDue() + 1); // Time pressure factor
+        return this.urgency + this.userPriority + tp; // Total score
     }
+
+    /**
+     * Gets remaining minutes to complete the task.
+     * @returns {number} Minutes remaining.
+     */
     getMinutesRemaining() { return Math.max(0, this.estimatedTime - this.minutesSpent); }
 }
 
+/**
+ * Represents a calendar event with start/end times, location, etc.
+ */
 class CalEvent {
+    /**
+     * Creates a new CalEvent instance.
+     * @param {string} name - Event name.
+     * @param {string|Date} startTime - Start time.
+     * @param {string|Date} endTime - End time.
+     * @param {string} location - Event location.
+     * @param {string} status - Event status ('FIXED' or 'OPTIONAL').
+     * @param {string} category - Event category.
+     */
     constructor(name, startTime, endTime, location, status, category) {
-        this.id = `event_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        this.type = 'event';
-        this.name = name;
-        this.startTime = new Date(startTime);
-        this.endTime = new Date(endTime);
-        this.location = location || '';
-        this.status = status || 'FIXED';
-        this.category = (category || 'other').toLowerCase();
-        this.archived = false;
-        this.archivedAt = null;
+        this.id = `event_${Date.now()}_${Math.random().toString(36).slice(2)}`; // Unique ID
+        this.type = 'event'; // Type identifier
+        this.name = name; // Event name
+        this.startTime = new Date(startTime); // Start time as Date
+        this.endTime = new Date(endTime); // End time as Date
+        this.location = location || ''; // Location
+        this.status = status || 'FIXED'; // Status
+        this.category = (category || 'other').toLowerCase(); // Normalized category
+        this.archived = false; // Archive status
+        this.archivedAt = null; // Archive timestamp
     }
+
+    /**
+     * Calculates event duration in minutes.
+     * @returns {number} Duration in minutes.
+     */
     getDurationMins() { return (this.endTime - this.startTime) / 60000; }
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
-let currentDate = new Date();          // anchor date for all views
-let currentView = 'week';              // 'week' | 'month' | 'day'
-let tasks  = [];
-let events = [];
-const START_HOUR = 7;
-const END_HOUR   = 23;
+let currentDate = new Date();          // anchor date for all views (current week/month/day start)
+let currentView = 'week';              // current view mode: 'week', 'month', or 'day'
+let tasks  = [];                       // array of Task objects
+let events = [];                       // array of CalEvent objects
+const START_HOUR = 7;                  // earliest hour to display in time grid (7 AM)
+const END_HOUR   = 23;                 // latest hour to display in time grid (11 PM)
 
 // ── Category colors (must match CSS) ──────────────────────────────────────
-const CAT_COLORS = {
-    school:          '#4f8ef7',
-    work:            '#34c759',
-    personal:        '#bf5af2',
-    extracurricular: '#ff9f0a',
-    extra:           '#ff9f0a',
-    other:           '#636366',
+const CAT_COLORS = {                   // color mapping for categories
+    school:          '#4f8ef7',        // blue for school
+    work:            '#34c759',        // green for work
+    personal:        '#bf5af2',        // purple for personal
+    extracurricular: '#ff9f0a',        // orange for extracurricular
+    extra:           '#ff9f0a',        // alias for extracurricular
+    other:           '#636366',        // gray for other
 };
+
+/**
+ * Gets the color for a given category.
+ * @param {string} cat - Category name.
+ * @returns {string} Hex color code.
+ */
 function catColor(cat) { return CAT_COLORS[cat] || CAT_COLORS.other; }
 
 // ── Init ───────────────────────────────────────────────────────────────────
+/**
+ * Initializes the application when DOM is loaded.
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    snapToMonday(currentDate);
-    setupListeners();
-    seedDemoData();
-    refreshAll();
+    snapToMonday(currentDate);         // Align currentDate to Monday
+    setupListeners();                  // Set up event listeners
+    seedDemoData();                    // Load demo data
+    refreshAll();                      // Render initial UI
 });
 
+/**
+ * Snaps a date to the start of the week (Monday).
+ * @param {Date} d - Date to snap.
+ */
 function snapToMonday(d) {
-    const day = d.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    d.setDate(d.getDate() + diff);
-    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();            // 0 = Sunday, 1 = Monday, etc.
+    const diff = day === 0 ? -6 : 1 - day; // Calculate days to subtract
+    d.setDate(d.getDate() + diff);     // Adjust date
+    d.setHours(0, 0, 0, 0);           // Set to midnight
 }
 
 // ── Event Listeners ────────────────────────────────────────────────────────
+/**
+ * Sets up all event listeners for UI interactions.
+ */
 function setupListeners() {
-    // Navigation
+    // Navigation buttons
     document.getElementById('prev-btn').addEventListener('click', () => {
-        if (currentView === 'week')  currentDate.setDate(currentDate.getDate() - 7);
-        if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
-        if (currentView === 'day')   currentDate.setDate(currentDate.getDate() - 1);
-        refreshAll();
+        if (currentView === 'week')  currentDate.setDate(currentDate.getDate() - 7); // Previous week
+        if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() - 1); // Previous month
+        if (currentView === 'day')   currentDate.setDate(currentDate.getDate() - 1); // Previous day
+        refreshAll(); // Update UI
     });
     document.getElementById('next-btn').addEventListener('click', () => {
-        if (currentView === 'week')  currentDate.setDate(currentDate.getDate() + 7);
-        if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
-        if (currentView === 'day')   currentDate.setDate(currentDate.getDate() + 1);
-        refreshAll();
+        if (currentView === 'week')  currentDate.setDate(currentDate.getDate() + 7); // Next week
+        if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() + 1); // Next month
+        if (currentView === 'day')   currentDate.setDate(currentDate.getDate() + 1); // Next day
+        refreshAll(); // Update UI
     });
     document.getElementById('today-btn').addEventListener('click', () => {
-        currentDate = new Date();
-        if (currentView === 'week' || currentView === 'day') snapToMonday(currentDate);
-        refreshAll();
+        currentDate = new Date(); // Reset to today
+        if (currentView === 'week' || currentView === 'day') snapToMonday(currentDate); // Snap if needed
+        refreshAll(); // Update UI
     });
 
-    // View toggle
+    // View toggle buttons
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentView = btn.dataset.view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active')); // Remove active class from all
+            btn.classList.add('active'); // Add active to clicked
+            currentView = btn.dataset.view; // Update current view
             if (currentView === 'week' || currentView === 'day') {
-                // make sure currentDate is a Monday for week, or actual today for day
+                // Ensure currentDate is aligned for week/day views
                 if (currentView === 'week') snapToMonday(currentDate);
             }
-            refreshAll();
+            refreshAll(); // Refresh UI
         });
     });
 
     // Task/Archive tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderTaskList(btn.dataset.tab);
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); // Remove active from all tabs
+            btn.classList.add('active'); // Add active to clicked tab
+            renderTaskList(btn.dataset.tab); // Render task list for the tab
         });
     });
 
-    // Modals
-    const taskModal  = document.getElementById('add-task-modal');
-    const eventModal = document.getElementById('add-event-modal');
+    // Modal handling
+    const taskModal  = document.getElementById('add-task-modal'); // Task modal element
+    const eventModal = document.getElementById('add-event-modal'); // Event modal element
 
-    document.getElementById('add-task-btn').addEventListener('click', () => taskModal.classList.remove('hidden'));
-    document.getElementById('add-event-btn').addEventListener('click', () => eventModal.classList.remove('hidden'));
+    document.getElementById('add-task-btn').addEventListener('click', () => taskModal.classList.remove('hidden')); // Show task modal
+    document.getElementById('add-event-btn').addEventListener('click', () => eventModal.classList.remove('hidden')); // Show event modal
 
+    // Close task modal
     [
         document.getElementById('close-task-modal'),
         document.getElementById('cancel-task-btn'),
     ].forEach(el => el.addEventListener('click', () => taskModal.classList.add('hidden')));
 
+    // Close event modal
     [
         document.getElementById('close-event-modal'),
         document.getElementById('cancel-event-btn'),
     ].forEach(el => el.addEventListener('click', () => eventModal.classList.add('hidden')));
 
-    // Form: add task
+    // Form submission: add task
     document.getElementById('task-form').addEventListener('submit', e => {
-        e.preventDefault();
-        const f = e.target;
-        tasks.push(new Task(
+        e.preventDefault(); // Prevent default form submission
+        const f = e.target; // Form element
+        tasks.push(new Task( // Create and add new task
             f['task-name'].value,
             f['task-category'].value,
             f['task-due-date'].value,
@@ -154,16 +224,16 @@ function setupListeners() {
             f['task-estimated-time'].value,
             f['task-description'].value
         ));
-        refreshAll();
-        taskModal.classList.add('hidden');
-        f.reset();
+        refreshAll(); // Refresh UI after adding task
+        taskModal.classList.add('hidden'); // Hide modal
+        f.reset(); // Reset form
     });
 
-    // Form: add event
+    // Form submission: add event
     document.getElementById('event-form').addEventListener('submit', e => {
-        e.preventDefault();
-        const f = e.target;
-        events.push(new CalEvent(
+        e.preventDefault(); // Prevent default submission
+        const f = e.target; // Form element
+        events.push(new CalEvent( // Create and add new event
             f['event-name'].value,
             f['event-start-time'].value,
             f['event-end-time'].value,
@@ -171,77 +241,93 @@ function setupListeners() {
             f['event-status'].value,
             f['event-category'].value
         ));
-        refreshAll();
-        eventModal.classList.add('hidden');
-        f.reset();
+        refreshAll(); // Refresh UI
+        eventModal.classList.add('hidden'); // Hide modal
+        f.reset(); // Reset form
     });
 
     // Close popover on outside click
     document.addEventListener('click', e => {
-        const pop = document.getElementById('detail-popover');
+        const pop = document.getElementById('detail-popover'); // Popover element
         if (!pop.classList.contains('hidden') && !pop.contains(e.target) && !e.target.closest('.cal-block') && !e.target.closest('.task-card') && !e.target.closest('.event-card') && !e.target.closest('.month-event-pill')) {
-            pop.classList.add('hidden');
+            pop.classList.add('hidden'); // Hide if clicked outside
         }
     });
 
     document.getElementById('close-popover').addEventListener('click', () => {
-        document.getElementById('detail-popover').classList.add('hidden');
+        document.getElementById('detail-popover').classList.add('hidden'); // Close popover
     });
 }
 
 // ── Refresh ────────────────────────────────────────────────────────────────
+/**
+ * Refreshes all UI components.
+ */
 function refreshAll() {
-    updateLabel();
-    renderCalendar();
-    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'tasks';
-    renderTaskList(activeTab);
-    updateStats();
+    updateLabel(); // Update date/week label
+    renderCalendar(); // Render calendar view
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'tasks'; // Get active tab
+    renderTaskList(activeTab); // Render task list
+    updateStats(); // Update statistics
 }
 
+/**
+ * Updates the date/week label based on current view.
+ */
 function updateLabel() {
-    const el = document.getElementById('week-label');
+    const el = document.getElementById('week-label'); // Label element
     if (currentView === 'week') {
-        const end = new Date(currentDate);
+        const end = new Date(currentDate); // End of week
         end.setDate(currentDate.getDate() + 6);
-        const fmt = { month: 'short', day: 'numeric' };
-        el.textContent = `${currentDate.toLocaleDateString('en-US', fmt)} – ${end.toLocaleDateString('en-US', fmt)}, ${currentDate.getFullYear()}`;
+        const fmt = { month: 'short', day: 'numeric' }; // Format options
+        el.textContent = `${currentDate.toLocaleDateString('en-US', fmt)} – ${end.toLocaleDateString('en-US', fmt)}, ${currentDate.getFullYear()}`; // Week range
     } else if (currentView === 'month') {
-        el.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        el.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); // Month and year
     } else {
-        el.textContent = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        el.textContent = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }); // Full date for day view
     }
 }
 
+/**
+ * Updates the statistics in the sidebar.
+ */
 function updateStats() {
-    const active = tasks.filter(t => !t.archived);
-    document.getElementById('stat-pending').textContent = active.filter(t => !t.completed).length;
-    document.getElementById('stat-done').textContent    = active.filter(t => t.completed).length;
-    document.getElementById('stat-overdue').textContent = active.filter(t => t.isOverdue()).length;
-    document.getElementById('stat-events').textContent  = events.filter(e => !e.archived).length;
+    const active = tasks.filter(t => !t.archived); // Active tasks
+    document.getElementById('stat-pending').textContent = active.filter(t => !t.completed).length; // Pending tasks
+    document.getElementById('stat-done').textContent    = active.filter(t => t.completed).length; // Completed tasks
+    document.getElementById('stat-overdue').textContent = active.filter(t => t.isOverdue()).length; // Overdue tasks
+    document.getElementById('stat-events').textContent  = events.filter(e => !e.archived).length; // Active events
 }
 
 // ══════════════════════════════════════════
 // CALENDAR RENDERING
 // ══════════════════════════════════════════
+/**
+ * Renders the calendar based on current view.
+ */
 function renderCalendar() {
-    if (currentView === 'month') renderMonthView();
-    else renderTimeGrid(currentView === 'day' ? 1 : 7);
+    if (currentView === 'month') renderMonthView(); // Render month view
+    else renderTimeGrid(currentView === 'day' ? 1 : 7); // Render time grid for week/day
 }
 
 // ── Time Grid (Week & Day) ─────────────────────────────────────────────────
+/**
+ * Renders the time grid for week or day view.
+ * @param {number} numDays - Number of days to display (1 for day, 7 for week).
+ */
 function renderTimeGrid(numDays) {
-    const cal = document.getElementById('calendar');
-    cal.innerHTML = '';
-    const wrapper = document.createElement('div');
+    const cal = document.getElementById('calendar'); // Calendar container
+    cal.innerHTML = ''; // Clear previous content
+    const wrapper = document.createElement('div'); // Wrapper div
     wrapper.className = 'calendar-wrapper';
 
-    // Header row
-    const header = document.createElement('div');
-    header.className = `cal-header${numDays === 1 ? ' day-view' : ''}`;
-    header.innerHTML = '<div class="cal-header-spacer"></div>';
+    // Header row with day names
+    const header = document.createElement('div'); // Header element
+    header.className = `cal-header${numDays === 1 ? ' day-view' : ''}`; // Class based on view
+    header.innerHTML = '<div class="cal-header-spacer"></div>'; // Spacer for time column
 
-    const today = new Date();
-    const DAYS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const today = new Date(); // Current date
+    const DAYS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']; // Day names
 
     for (let i = 0; i < numDays; i++) {
         const d = new Date(currentDate);
@@ -657,23 +743,29 @@ function btn(cls, label, handler) {
 }
 
 // ── Demo Data ──────────────────────────────────────────────────────────────
+/**
+ * Seeds the application with demo tasks and events.
+ */
 function seedDemoData() {
-    const mon = new Date();
-    snapToMonday(mon);
+    const mon = new Date(); // Current date
+    snapToMonday(mon); // Snap to Monday
 
+    // Helper to create date with offset
     const d = (offset, h, m = 0) => {
-        const x = new Date(mon);
-        x.setDate(mon.getDate() + offset);
-        x.setHours(h, m, 0, 0);
+        const x = new Date(mon); // Base date
+        x.setDate(mon.getDate() + offset); // Add offset days
+        x.setHours(h, m, 0, 0); // Set time
         return x;
     };
 
+    // Add demo tasks
     tasks.push(new Task("Math Homework",       "School",          d(0, 17),  9, 8, 90,  "Chapter 5 exercises"));
     tasks.push(new Task("Physics Lab Report",  "School",          d(2, 12),  6, 6, 60,  "Include all graphs"));
     tasks.push(new Task("Team Presentation",   "Work",            d(3, 15),  8, 9, 120, "Slides + script"));
     tasks.push(new Task("Journal Entry",       "Personal",        d(1, 20),  3, 4, 20,  ""));
     tasks.push(new Task("Overdue Assignment",  "School",          d(-1, 12), 8, 8, 45,  "Submit on portal"));
 
+    // Add demo events
     events.push(new CalEvent("School",          d(0,  8), d(0, 15), "Main Building",    "FIXED",    "School"));
     events.push(new CalEvent("School",          d(1,  8), d(1, 15), "Main Building",    "FIXED",    "School"));
     events.push(new CalEvent("School",          d(2,  8), d(2, 15), "Main Building",    "FIXED",    "School"));
@@ -685,13 +777,30 @@ function seedDemoData() {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+/**
+ * Formats a date to time string (e.g., 3:00 PM).
+ * @param {Date} d - Date to format.
+ * @returns {string} Formatted time.
+ */
 function fmtTime(d) {
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
+
+/**
+ * Capitalizes the first letter of a string.
+ * @param {string} s - String to capitalize.
+ * @returns {string} Capitalized string.
+ */
 function capFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+
+/**
+ * Normalizes category name.
+ * @param {string} cat - Category name.
+ * @returns {string} Normalized category.
+ */
 function normCat(cat) {
-    if (!cat) return 'other';
-    const c = cat.toLowerCase();
-    if (c === 'extra') return 'extracurricular';
-    return c;
+    if (!cat) return 'other'; // Default to 'other'
+    const c = cat.toLowerCase(); // Lowercase
+    if (c === 'extra') return 'extracurricular'; // Alias
+    return c; // Return normalized
 }

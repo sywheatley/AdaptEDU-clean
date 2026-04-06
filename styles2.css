@@ -1,16 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap'); /* Import Google Fonts for DM Sans and DM Mono */
 
-:root {
-    --bg-dark:      #161618;
-    --bg-panel:     #1e1e22;
-    --bg-card:      #28282e;
-    --bg-hover:     #32323a;
-    --border:       #3a3a44;
-    --border-light: #2e2e38;
+:root { /* CSS custom properties (variables) for consistent theming */
+    --bg-dark:      #161618; /* Dark background color */
+    --bg-panel:     #1e1e22; /* Panel background */
+    --bg-card:      #28282e; /* Card background */
+    --bg-hover:     #32323a; /* Hover background */
+    --border:       #3a3a44; /* Border color */
+    --border-light: #2e2e38; /* Light border color */
 
-    --text-primary: #f0f0f5;
-    --text-secondary: #a0a0b8;
-    --text-muted:   #606078;
+    --text-primary: #f0f0f5; /* Primary text color */
+    --text-secondary: #a0a0b8; /* Secondary text color */
+    --text-muted:   #606078; /* Muted text color */
 
     /* Category palette — Apple-inspired, clearly distinct */
     --cat-school:   #4f8ef7;   /* vivid blue */
@@ -19,100 +19,105 @@
     --cat-extracurricular: #ff9f0a; /* amber */
     --cat-other:    #636366;   /* neutral gray */
 
-    --accent:       #4f8ef7;
-    --accent-red:   #ff453a;
-    --accent-green: #34c759;
-    --accent-orange:#ff9f0a;
-    --accent-purple:#bf5af2;
+    --accent:       #4f8ef7; /* Main accent color */
+    --accent-red:   #ff453a; /* Red accent */
+    --accent-green: #34c759; /* Green accent */
+    --accent-orange:#ff9f0a; /* Orange accent */
+    --accent-purple:#bf5af2; /* Purple accent */
 
-    --font: 'DM Sans', system-ui, sans-serif;
-    --font-mono: 'DM Mono', monospace;
-    --radius: 10px;
-    --radius-sm: 6px;
+    --font: 'DM Sans', system-ui, sans-serif; /* Main font family */
+    --font-mono: 'DM Mono', monospace; /* Monospace font */
+    --radius: 10px; /* Border radius */
+    --radius-sm: 6px; /* Small border radius */
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; } /* CSS reset for box-sizing and margins */
 
-body {
-    font-family: var(--font);
-    background: var(--bg-dark);
-    color: var(--text-primary);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
+body { /* Body styles for the entire page */
+    font-family: var(--font); /* Use main font */
+    background: var(--bg-dark); /* Dark background */
+    color: var(--text-primary); /* Primary text color */
+    height: 100vh; /* Full viewport height */
+    display: flex; /* Flexbox layout */
+    flex-direction: column; /* Vertical layout */
+    overflow: hidden; /* Hide overflow */
+    -webkit-font-smoothing: antialiased; /* Smooth fonts on webkit */
 }
 
 /* ══════════════════════════════════════════
    TOP BAR
 ══════════════════════════════════════════ */
-.top-bar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    height: 54px;
-    background: var(--bg-panel);
-    border-bottom: 1px solid var(--border);
-    padding: 0 20px;
-    flex-shrink: 0;
-    z-index: 20;
+.top-bar { /* Top navigation bar */
+    display: flex; /* Flexbox layout */
+    align-items: center; /* Center vertically */
+    gap: 16px; /* Gap between items */
+    height: 54px; /* Fixed height */
+    background: var(--bg-panel); /* Panel background */
+    border-bottom: 1px solid var(--border); /* Bottom border */
+    padding: 0 20px; /* Horizontal padding */
+    flex-shrink: 0; /* Don't shrink */
+    z-index: 20; /* High z-index */
 }
 
-.logo {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: -0.5px;
-    width: 200px;
+.logo { /* Logo text */
+    font-size: 18px; /* Font size */
+    font-weight: 700; /* Bold */
+    color: var(--accent); /* Accent color */
+    letter-spacing: -0.5px; /* Tight spacing */
+    width: 200px; /* Fixed width */
 }
 
-.week-nav {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.week-nav { /* Week navigation controls */
+    display: flex; /* Flexbox */
+    align-items: center; /* Center */
+    gap: 8px; /* Gap */
 }
 
-.week-label {
-    font-size: 14px;
-    font-weight: 600;
-    min-width: 220px;
-    text-align: center;
-    color: var(--text-primary);
+.week-label { /* Week/month/day label */
+    font-size: 14px; /* Font size */
+    font-weight: 600; /* Semi-bold */
+    min-width: 220px; /* Minimum width */
+    text-align: center; /* Center text */
+    color: var(--text-primary); /* Primary text color */
 }
 
-.view-toggle {
-    display: flex;
-    background: var(--bg-card);
-    border-radius: 8px;
-    padding: 3px;
-    gap: 2px;
-    margin-left: auto;
+.view-toggle { /* View toggle buttons (Week/Month/Day) */
+    display: flex; /* Flexbox */
+    background: var(--bg-card); /* Card background */
+    border-radius: 8px; /* Rounded corners */
+    padding: 3px; /* Padding */
+    gap: 2px; /* Gap between buttons */
+    margin-left: auto; /* Push to right */
 }
 
-.view-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-family: var(--font);
-    font-size: 12px;
-    font-weight: 500;
-    padding: 4px 12px;
+.view-btn { /* Individual view button */
+    background: none; /* No background */
+    border: none; /* No border */
+    color: var(--text-secondary); /* Secondary text */
+    font-family: var(--font); /* Font family */
+    font-size: 12px; /* Font size */
+    font-weight: 500; /* Medium weight */
+    padding: 4px 12px; /* Padding */
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
 }
+/* Active state for view toggle buttons */
 .view-btn.active {
     background: var(--accent);
     color: #fff;
 }
+
+/* Hover state for inactive view buttons */
 .view-btn:hover:not(.active) {
     background: var(--bg-hover);
     color: var(--text-primary);
 }
 
+/* Actions container in top bar */
 .actions { display: flex; gap: 8px; }
 
+/* Base button styles */
 button { cursor: pointer; border: none; font-family: var(--font); }
 
 .icon-btn {
@@ -158,66 +163,66 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 
 /* ── Sidebar ───────────────────────────── */
-.sidebar {
-    width: 210px;
-    background: var(--bg-panel);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    padding: 20px 14px;
-    flex-shrink: 0;
+.sidebar { /* Sidebar container */
+    width: 210px; /* Fixed width */
+    background: var(--bg-panel); /* Panel background */
+    border-right: 1px solid var(--border); /* Right border */
+    display: flex; /* Flexbox */
+    flex-direction: column; /* Vertical layout */
+    padding: 20px 14px; /* Padding */
+    flex-shrink: 0; /* Don't shrink */
 }
 
-.sidebar-section { margin-bottom: 24px; }
+.sidebar-section { margin-bottom: 24px; } /* Margin between sections */
 
-.section-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted);
-    letter-spacing: 0.8px;
-    margin-bottom: 8px;
+.section-label { /* Section label (e.g., CALENDARS) */
+    font-size: 10px; /* Small font */
+    font-weight: 700; /* Bold */
+    color: var(--text-muted); /* Muted color */
+    letter-spacing: 0.8px; /* Spacing */
+    margin-bottom: 8px; /* Bottom margin */
 }
 
-.category-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    font-size: 13px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: background 0.12s, color 0.12s;
+.category-item { /* Category item (e.g., School, Work) */
+    display: flex; /* Flexbox */
+    align-items: center; /* Center */
+    gap: 8px; /* Gap */
+    padding: 6px 8px; /* Padding */
+    font-size: 13px; /* Font size */
+    border-radius: var(--radius-sm); /* Rounded */
+    cursor: pointer; /* Pointer cursor */
+    color: var(--text-secondary); /* Secondary text */
+    transition: background 0.12s, color 0.12s; /* Smooth transition */
 }
-.category-item:hover { background: var(--bg-card); color: var(--text-primary); }
+.category-item:hover { background: var(--bg-card); color: var(--text-primary); } /* Hover effect */
 
-.dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
+.dot { /* Colored dot for categories */
+    width: 10px; height: 10px; /* Size */
+    border-radius: 50%; /* Circle */
+    flex-shrink: 0; /* Don't shrink */
 }
-.dot.school        { background: var(--cat-school); }
-.dot.work          { background: var(--cat-work); }
-.dot.personal      { background: var(--cat-personal); }
-.dot.extracurricular { background: var(--cat-extracurricular); }
-.dot.other         { background: var(--cat-other); }
+.dot.school        { background: var(--cat-school); } /* School color */
+.dot.work          { background: var(--cat-work); } /* Work color */
+.dot.personal      { background: var(--cat-personal); } /* Personal color */
+.dot.extracurricular { background: var(--cat-extracurricular); } /* Extracurricular color */
+.dot.other         { background: var(--cat-other); } /* Other color */
 /* also handle "extra" alias */
-.dot.extra         { background: var(--cat-extracurricular); }
+.dot.extra         { background: var(--cat-extracurricular); } /* Alias for extracurricular */
 
-.sidebar-spacer { flex: 1; }
+.sidebar-spacer { flex: 1; } /* Spacer to push stats to bottom */
 
-.mini-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+.mini-stats { /* Mini statistics grid */
+    display: grid; /* Grid layout */
+    grid-template-columns: 1fr 1fr; /* 2 columns */
+    gap: 8px; /* Gap */
 }
-.stat-box {
-    background: var(--bg-card);
-    padding: 10px 8px;
-    text-align: center;
-    border-radius: var(--radius-sm);
+.stat-box { /* Individual stat box */
+    background: var(--bg-card); /* Card background */
+    padding: 10px 8px; /* Padding */
+    text-align: center; /* Center text */
+    border-radius: var(--radius-sm); /* Rounded */
 }
-.stat-val  { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-val  { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; } /* Stat value */
 .stat-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 .blue   { color: var(--accent); }
 .green  { color: var(--accent-green); }
@@ -362,12 +367,15 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 /* ══════════════════════════════════════════
    CALENDAR GRID (WEEK / DAY)
 ══════════════════════════════════════════ */
+
+/* Calendar wrapper container for the entire calendar grid */
 .calendar-wrapper {
     display: flex;
     flex-direction: column;
     min-width: 600px;
 }
 
+/* Calendar header with day names and dates */
 .cal-header {
     display: grid;
     grid-template-columns: 52px repeat(7, 1fr);
@@ -381,8 +389,10 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     grid-template-columns: 52px 1fr;
 }
 
+/* Spacer for the time column in header */
 .cal-header-spacer { border-right: 1px solid var(--border-light); }
 
+/* Individual day header cell */
 .cal-day-header {
     display: flex;
     flex-direction: column;
@@ -391,7 +401,11 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     padding: 10px 0 8px;
     border-left: 1px solid var(--border-light);
 }
+
+/* Day name (Mon, Tue, etc.) */
 .cal-day-name  { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+
+/* Day date number */
 .cal-day-date  {
     font-size: 18px; font-weight: 600; margin-top: 2px;
     width: 34px; height: 34px;
@@ -404,6 +418,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .cal-day-header.today .cal-day-name { color: var(--accent); font-weight: 700; }
 .cal-day-header.today .cal-day-date { background: var(--accent); color: #fff; }
 
+/* Calendar body grid containing time slots and day columns */
 .cal-body {
     display: grid;
     grid-template-columns: 52px repeat(7, 1fr);
@@ -413,12 +428,17 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     grid-template-columns: 52px 1fr;
 }
 
+/* Time column on the left side of calendar */
 .cal-time-col { display: flex; flex-direction: column; }
+
+/* Individual time slot (1 hour each) */
 .cal-time-slot {
     height: 60px;
     position: relative;
     border-right: 1px solid var(--border-light);
 }
+
+/* Time label (e.g., 9:00 AM) positioned on time slots */
 .cal-time-label {
     position: absolute;
     top: -7px; right: 8px;
@@ -428,6 +448,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     white-space: nowrap;
 }
 
+/* Day column for each day of the week */
 .cal-day-col {
     border-left: 1px solid var(--border-light);
     position: relative;
@@ -442,6 +463,8 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .cal-day-col.today-col { background-color: rgba(79,142,247,0.025); }
 
 /* ── Calendar blocks ───────────────────── */
+
+/* Base styling for event/task blocks in calendar */
 .cal-block {
     position: absolute;
     left: 3px; right: 3px;
@@ -456,36 +479,46 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .cal-block:hover { filter: brightness(1.15); }
 
+/* School category blocks */
 .cal-block.school {
     background: rgba(79,142,247,0.25);
     border-left: 3px solid var(--cat-school);
     color: #a8c8ff;
 }
+
+/* Work category blocks */
 .cal-block.work {
     background: rgba(52,199,89,0.22);
     border-left: 3px solid var(--cat-work);
     color: #7eeaaa;
 }
+
+/* Personal category blocks */
 .cal-block.personal {
     background: rgba(191,90,242,0.22);
     border-left: 3px solid var(--cat-personal);
     color: #d9a8ff;
 }
+
+/* Extracurricular category blocks */
 .cal-block.extracurricular, .cal-block.extra {
     background: rgba(255,159,10,0.22);
     border-left: 3px solid var(--cat-extracurricular);
     color: #ffd080;
 }
+
+/* Other category blocks */
 .cal-block.other {
     background: rgba(99,99,102,0.22);
     border-left: 3px solid var(--cat-other);
     color: #b0b0c0;
 }
 
+/* Block title and time styling */
 .cal-block .block-title { font-weight: 600; line-height: 1.3; }
 .cal-block .block-time  { font-size: 10px; opacity: 0.75; margin-top: 1px; }
 
-/* Task blocks look slightly different */
+/* Task blocks have dashed borders to distinguish from events */
 .cal-block.task-block {
     border-style: dashed;
     border-width: 1px;
@@ -493,12 +526,14 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     border-left-style: solid;
 }
 
-/* Current time line */
+/* Current time line that shows the current time across the calendar */
 .current-time-line {
     position: absolute; left: 0; right: 0;
     height: 2px; background: var(--accent-red);
     z-index: 5; pointer-events: none;
 }
+
+/* Small dot at the start of the current time line */
 .current-time-dot {
     position: absolute; left: -4px; top: -4px;
     width: 10px; height: 10px;
@@ -509,8 +544,11 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 /* ══════════════════════════════════════════
    MONTH VIEW
 ══════════════════════════════════════════ */
+
+/* Month view wrapper container */
 .month-wrapper { display: flex; flex-direction: column; height: 100%; }
 
+/* Month header row with day names */
 .month-header-row {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -518,6 +556,8 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     border-bottom: 1px solid var(--border);
     position: sticky; top: 0; z-index: 10;
 }
+
+/* Day name headers in month view */
 .month-day-name {
     text-align: center;
     padding: 10px 0;
@@ -528,6 +568,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     letter-spacing: 0.5px;
 }
 
+/* Month grid containing all the date cells */
 .month-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -537,6 +578,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     border-top: 1px solid var(--border-light);
 }
 
+/* Individual date cell in month view */
 .month-cell {
     border-right: 1px solid var(--border-light);
     border-bottom: 1px solid var(--border-light);
@@ -553,6 +595,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     display: flex; align-items: center; justify-content: center;
 }
 
+/* Date number in month cell */
 .month-cell-date {
     font-size: 13px;
     font-weight: 600;
@@ -562,6 +605,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .month-cell-date:hover { background: var(--bg-hover); border-radius: 50%; }
 
+/* Event pill in month view cells */
 .month-event-pill {
     display: block;
     border-radius: 3px;
@@ -577,6 +621,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .month-event-pill:hover { filter: brightness(1.2); }
 
+/* Category-specific colors for month event pills */
 .month-event-pill.school        { background: rgba(79,142,247,0.3);  color: #a8c8ff; }
 .month-event-pill.work          { background: rgba(52,199,89,0.3);   color: #7eeaaa; }
 .month-event-pill.personal      { background: rgba(191,90,242,0.3);  color: #d9a8ff; }
@@ -585,6 +630,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .month-event-pill.other         { background: rgba(99,99,102,0.3);   color: #b0b0c0; }
 .month-event-pill.task-pill     { opacity: 0.7; }
 
+/* "Show more" indicator when there are too many events in a month cell */
 .month-more {
     font-size: 10px;
     color: var(--text-muted);
@@ -596,6 +642,8 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 /* ══════════════════════════════════════════
    DETAIL POPOVER
 ══════════════════════════════════════════ */
+
+/* Popover that shows detailed information when clicking on events/tasks */
 .detail-popover {
     position: fixed;
     background: var(--bg-panel);
@@ -606,12 +654,15 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     z-index: 500;
     animation: popIn 0.15s ease;
 }
+
+/* Animation for popover appearance */
 @keyframes popIn {
     from { opacity: 0; transform: scale(0.95) translateY(4px); }
     to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 .detail-popover.hidden { display: none; }
 
+/* Header section of the detail popover */
 .popover-header {
     display: flex;
     align-items: center;
@@ -619,17 +670,23 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     padding: 14px 16px 10px;
     border-bottom: 1px solid var(--border-light);
 }
+
+/* Colored dot indicating event/task category */
 .popover-dot {
     width: 12px; height: 12px;
     border-radius: 50%;
     flex-shrink: 0;
 }
+
+/* Title of the event/task in popover */
 .popover-title {
     flex: 1;
     font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
 }
+
+/* Close button for the popover */
 .close-btn {
     background: none;
     color: var(--text-muted);
@@ -640,6 +697,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .close-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
 
+/* Body content area of the popover */
 .popover-body {
     padding: 12px 16px;
     display: flex;
@@ -650,10 +708,13 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     max-height: 280px;
     overflow-y: auto;
 }
+
+/* Individual row in popover body (icon + value) */
 .popover-row { display: flex; gap: 8px; align-items: flex-start; }
 .popover-icon { color: var(--text-muted); flex-shrink: 0; width: 14px; margin-top: 1px; }
 .popover-val  { color: var(--text-primary); }
 
+/* Footer with action buttons */
 .popover-footer {
     padding: 10px 16px 12px;
     border-top: 1px solid var(--border-light);
@@ -661,6 +722,8 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     gap: 8px;
     justify-content: flex-end;
 }
+
+/* Action buttons in popover footer */
 .popover-action-btn {
     padding: 6px 14px;
     border-radius: 20px;
@@ -679,6 +742,8 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 /* ══════════════════════════════════════════
    MODALS
 ══════════════════════════════════════════ */
+
+/* Dark overlay behind modals */
 .modal-overlay {
     position: fixed; inset: 0;
     background: rgba(10,10,18,0.75);
@@ -688,6 +753,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .modal-overlay.hidden { display: none; }
 
+/* Modal content container */
 .modal-content {
     background: var(--bg-panel);
     border: 1px solid var(--border);
@@ -696,11 +762,14 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     animation: modalIn 0.2s ease;
 }
+
+/* Animation for modal appearance */
 @keyframes modalIn {
     from { opacity: 0; transform: translateY(-16px) scale(0.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+/* Modal header with title and close button */
 .modal-header {
     display: flex; justify-content: space-between; align-items: center;
     padding: 18px 24px 14px;
@@ -708,13 +777,17 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .modal-header h2 { font-size: 17px; font-weight: 700; }
 
+/* Form container inside modals */
 .modal-form {
     padding: 20px 24px;
     display: flex; flex-direction: column;
     gap: 14px;
 }
+
+/* Form labels */
 .modal-form label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.4px; }
 
+/* Form input fields (text, datetime, number, select, textarea) */
 .modal-form input[type="text"],
 .modal-form input[type="datetime-local"],
 .modal-form input[type="number"],
@@ -730,6 +803,8 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     font-size: 13px;
     transition: border-color 0.15s;
 }
+
+/* Focus state for form inputs */
 .modal-form input:focus,
 .modal-form select:focus,
 .modal-form textarea:focus {
@@ -738,9 +813,13 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     box-shadow: 0 0 0 3px rgba(79,142,247,0.2);
 }
 
+/* Form row for side-by-side inputs */
 .form-row { display: flex; gap: 14px; }
+
+/* Form group container for label and input */
 .form-group { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 
+/* Modal footer with action buttons */
 .modal-footer {
     display: flex; justify-content: flex-end; gap: 10px;
     padding: 14px 24px;
@@ -750,7 +829,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     border-bottom-right-radius: 12px;
 }
 
-/* scrollbar styling */
+/* Custom scrollbar styling for webkit browsers */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }

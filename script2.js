@@ -106,6 +106,86 @@ let events = [];                       // array of CalEvent objects
 const START_HOUR = 7;                  // earliest hour to display in time grid (7 AM)
 const END_HOUR   = 23;                 // latest hour to display in time grid (11 PM)
 
+// ── Persistence (localStorage) ─────────────────────────────────────────────
+
+const TASKS_KEY  = 'adaptedu_tasks';
+const EVENTS_KEY = 'adaptedu_events';
+
+/** Serialize and save current state to localStorage */
+function saveData() {
+    localStorage.setItem(TASKS_KEY,  JSON.stringify(tasks));
+    localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+}
+
+/** Load saved data from localStorage, rehydrate class instances */
+function loadData() {
+    const rawTasks  = JSON.parse(localStorage.getItem(TASKS_KEY)  || '[]');
+    const rawEvents = JSON.parse(localStorage.getItem(EVENTS_KEY) || '[]');
+
+    tasks = rawTasks.map(t => {
+        const task = new Task(t.name, t.category, t.dueDate, t.urgency, t.userPriority, t.estimatedTime, t.description, t.completed);
+        task.id         = t.id;
+        task.archived   = t.archived;
+        task.archivedAt = t.archivedAt;
+        task.minutesSpent = t.minutesSpent || 0;
+        return task;
+    });
+
+    events = rawEvents.map(e => {
+        const ev = new CalEvent(e.name, e.startTime, e.endTime, e.location, e.status, e.category);
+        ev.id         = e.id;
+        ev.archived   = e.archived;
+        ev.archivedAt = e.archivedAt;
+        return ev;
+    });
+}
+
+/** Parse a tasks CSV string and add to tasks array */
+function importTasksCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',');
+    lines.slice(1).forEach(line => {
+        const cols = line.split(',');
+        const row  = Object.fromEntries(headers.map((h, i) => [h.trim(), cols[i]?.trim()]));
+        tasks.push(new Task(row.name, row.category, row.dueDate, 5, row.userPriority, row.estimatedTime, row.description, row.completed === 'true'));
+    });
+}
+
+/** Parse an events CSV string and add to events array */
+function importEventsCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',');
+    lines.slice(1).forEach(line => {
+        const cols = line.split(',');
+        const row  = Object.fromEntries(headers.map((h, i) => [h.trim(), cols[i]?.trim()]));
+        // Normalize status: 'FIXED_EVENT' → 'FIXED'
+        const status = row.status?.includes('FIXED') ? 'FIXED' : 'OPTIONAL';
+        events.push(new CalEvent(row.name, row.startTime, row.endTime, row.location, status, row.category));
+    });
+}
+
+/** Export current tasks and events as downloadable CSV files */
+function exportToCSV() {
+    const taskHeaders = 'name,category,dueDate,userPriority,estimatedTime,completed,description';
+    const taskRows    = tasks.map(t =>
+        `${t.name},${t.category},${t.dueDate.toISOString()},${t.userPriority},${t.estimatedTime},${t.completed},${t.description}`
+    );
+    downloadCSV('tasks_export.csv', [taskHeaders, ...taskRows].join('\n'));
+
+    const eventHeaders = 'name,startTime,endTime,location,status,category';
+    const eventRows    = events.map(e =>
+        `${e.name},${e.startTime.toISOString()},${e.endTime.toISOString()},${e.location},${e.status},${e.category}`
+    );
+    downloadCSV('events_export.csv', [eventHeaders, ...eventRows].join('\n'));
+}
+
+function downloadCSV(filename, content) {
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(new Blob([content], { type: 'text/csv' }));
+    a.download = filename;
+    a.click();
+}
+
 // ── Category colors (must match CSS) ──────────────────────────────────────
 const CAT_COLORS = {                   // color mapping for categories
     school:          '#4f8ef7',        // blue for school
@@ -130,7 +210,8 @@ function catColor(cat) { return CAT_COLORS[cat] || CAT_COLORS.other; }
 document.addEventListener('DOMContentLoaded', () => {
     snapToMonday(currentDate);         // Align currentDate to Monday
     setupListeners();                  // Set up event listeners
-    seedDemoData();                    // Load demo data
+    loadData();
+    if (tasks.length === 0 && events.length === 0) seedDemoData();
     refreshAll();                      // Render initial UI
 });
 
@@ -225,6 +306,7 @@ function setupListeners() {
             f['task-description'].value
         ));
         refreshAll(); // Refresh UI after adding task
+        saveData();
         taskModal.classList.add('hidden'); // Hide modal
         f.reset(); // Reset form
     });
@@ -242,6 +324,7 @@ function setupListeners() {
             f['event-category'].value
         ));
         refreshAll(); // Refresh UI
+        saveData();
         eventModal.classList.add('hidden'); // Hide modal
         f.reset(); // Reset form
     });
@@ -257,6 +340,20 @@ function setupListeners() {
     document.getElementById('close-popover').addEventListener('click', () => {
         document.getElementById('detail-popover').classList.add('hidden'); // Close popover
     });
+
+    // CSV Import
+    document.getElementById('import-csv-input').addEventListener('change', async (e) => {
+        for (const file of e.target.files) {
+            const text = await file.text();
+            if (file.name.toLowerCase().includes('task')) importTasksCSV(text);
+            else if (file.name.toLowerCase().includes('event')) importEventsCSV(text);
+        }
+        saveData();
+        refreshAll();
+    });
+
+    // CSV Export
+    document.getElementById('export-csv-btn').addEventListener('click', exportToCSV);
 }
 
 // ── Refresh ────────────────────────────────────────────────────────────────
@@ -474,6 +571,7 @@ function renderMonthView() {
             currentDate = new Date(cellDate);
             currentView = 'day';
             document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'day'));
+            saveData();
             refreshAll();
         });
         cell.appendChild(dateEl);
@@ -579,6 +677,7 @@ function renderItem(item, container, isArchive) {
                 t.archived   = false;
                 t.archivedAt = null;
             }
+            saveData();
             refreshAll();
         });
 
@@ -651,17 +750,20 @@ function showPopover(item, e) {
                 t.archived   = t.completed;
                 t.archivedAt = t.completed ? Date.now() : null;
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             const btnArchive = btn('btn-archive', 'Archive', () => {
                 t.archived   = true;
                 t.archivedAt = Date.now();
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             const btnDel = btn('btn-delete', 'Delete', () => {
                 tasks = tasks.filter(x => x.id !== t.id);
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             footer.appendChild(btnComplete);
@@ -673,11 +775,13 @@ function showPopover(item, e) {
                 t.completed  = false;
                 t.archivedAt = null;
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             const btnDel = btn('btn-delete', 'Delete', () => {
                 tasks = tasks.filter(x => x.id !== t.id);
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             footer.appendChild(btnRestore);
@@ -697,11 +801,13 @@ function showPopover(item, e) {
                 ev.archived   = true;
                 ev.archivedAt = Date.now();
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             const btnDel = btn('btn-delete', 'Delete', () => {
                 events = events.filter(x => x.id !== ev.id);
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             footer.appendChild(btnArc);
@@ -711,11 +817,13 @@ function showPopover(item, e) {
                 ev.archived   = false;
                 ev.archivedAt = null;
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             const btnDel = btn('btn-delete', 'Delete', () => {
                 events = events.filter(x => x.id !== ev.id);
                 pop.classList.add('hidden');
+                saveData();
                 refreshAll();
             });
             footer.appendChild(btnRestore);

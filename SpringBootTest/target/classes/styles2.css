@@ -818,6 +818,22 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .form-row { display: flex; gap: 14px; }
 .form-group { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 
+.task-adjust-message {
+    min-height: 18px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: -4px;
+}
+
+.task-adjust-message.is-success {
+    color: var(--accent-green);
+}
+
+.task-adjust-message.is-fallback {
+    color: var(--accent-orange);
+}
+
 .modal-footer {
     display: flex; justify-content: flex-end; gap: 10px;
     padding: 14px 24px;

@@ -133,13 +133,19 @@ function setupListeners() {
     const taskModal  = document.getElementById('add-task-modal');
     const eventModal = document.getElementById('add-event-modal');
 
-    document.getElementById('add-task-btn').addEventListener('click', () => taskModal.classList.remove('hidden'));
+    document.getElementById('add-task-btn').addEventListener('click', () => {
+        clearTaskAdjustMessage();
+        taskModal.classList.remove('hidden');
+    });
     document.getElementById('add-event-btn').addEventListener('click', () => eventModal.classList.remove('hidden'));
 
     [
         document.getElementById('close-task-modal'),
         document.getElementById('cancel-task-btn'),
-    ].forEach(el => el.addEventListener('click', () => taskModal.classList.add('hidden')));
+    ].forEach(el => el.addEventListener('click', () => {
+        taskModal.classList.add('hidden');
+        clearTaskAdjustMessage();
+    }));
 
     [
         document.getElementById('close-event-modal'),
@@ -147,21 +153,38 @@ function setupListeners() {
     ].forEach(el => el.addEventListener('click', () => eventModal.classList.add('hidden')));
 
     // Form: add task
-    document.getElementById('task-form').addEventListener('submit', e => {
+    document.getElementById('task-form').addEventListener('submit', async e => {
         e.preventDefault();
         const f = e.target;
+
+        const rawEstimatedMinutes = parseInt(f['task-estimated-time'].value, 10) || 0;
+        const adjustmentResult = await adjustEstimatedMinutes(rawEstimatedMinutes, {
+            name: f['task-name'].value,
+            category: f['task-category'].value,
+            dueDate: f['task-due-date'].value,
+            userPriority: parseInt(f['task-priority'].value, 10) || 5,
+            estimatedTime: rawEstimatedMinutes,
+            completed: false,
+            description: f['task-description'].value,
+            minutesSpent: 0
+        });
+        showTaskAdjustMessage(rawEstimatedMinutes, adjustmentResult.minutes, adjustmentResult.usedFallback);
+
         tasks.push(new Task(
             f['task-name'].value,
             f['task-category'].value,
             f['task-due-date'].value,
             f['task-urgency'].value,
             f['task-priority'].value,
-            f['task-estimated-time'].value,
+            adjustmentResult.minutes,
             f['task-description'].value
         ));
         refreshAll();
+
+        await delay(1100);
         taskModal.classList.add('hidden');
         f.reset();
+        clearTaskAdjustMessage();
     });
 
     // Form: add event
@@ -192,6 +215,65 @@ function setupListeners() {
     document.getElementById('close-popover').addEventListener('click', () => {
         document.getElementById('detail-popover').classList.add('hidden');
     });
+}
+
+async function adjustEstimatedMinutes(fallbackMinutes, taskPayload) {
+    try {
+        const response = await fetch('/api/task-time-adjust', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(taskPayload)
+        });
+
+        if (!response.ok) {
+            console.warn(`Time-adjust API failed (${response.status}). Using raw estimate: ${fallbackMinutes}m.`);
+            return { minutes: fallbackMinutes, usedFallback: true };
+        }
+
+        const adjustedTask = await response.json();
+        const adjusted = parseInt(adjustedTask?.estimatedTime, 10);
+        if (!Number.isFinite(adjusted) || adjusted <= 0) {
+            console.warn(`Time-adjust API returned invalid estimatedTime. Using raw estimate: ${fallbackMinutes}m.`);
+            return { minutes: fallbackMinutes, usedFallback: true };
+        }
+
+        return { minutes: adjusted, usedFallback: false };
+    } catch (error) {
+        console.warn(`Time-adjust API unavailable. Using raw estimate: ${fallbackMinutes}m.`, error);
+        return { minutes: fallbackMinutes, usedFallback: true };
+    }
+}
+
+function showTaskAdjustMessage(rawMinutes, adjustedMinutes, usedFallback) {
+    const msg = document.getElementById('task-adjust-message');
+    if (!msg) return;
+
+    msg.classList.remove('is-success', 'is-fallback');
+
+    if (usedFallback) {
+        msg.textContent = `Could not adjust time right now. Using ${rawMinutes} min.`;
+        msg.classList.add('is-fallback');
+        return;
+    }
+
+    if (adjustedMinutes !== rawMinutes) {
+        msg.textContent = `Adjusted by algorithm: ${rawMinutes} → ${adjustedMinutes} min.`;
+        msg.classList.add('is-success');
+        return;
+    }
+
+    msg.textContent = `No change needed. Keeping ${rawMinutes} min.`;
+}
+
+function clearTaskAdjustMessage() {
+    const msg = document.getElementById('task-adjust-message');
+    if (!msg) return;
+    msg.textContent = '';
+    msg.classList.remove('is-success', 'is-fallback');
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ── Refresh ────────────────────────────────────────────────────────────────
@@ -522,7 +604,7 @@ function renderItem(item, container, isArchive) {
             <div class="card-info">
                 <div class="card-name">${t.name}</div>
                 <div class="card-meta">${capFirst(t.category)} · Due ${t.dueDate.toLocaleDateString('en-US', {weekday:'short',month:'short',day:'numeric'})}</div>
-                <div class="card-detail">Urgency ${t.urgency} · Priority ${t.userPriority} · ${t.getMinutesRemaining()}m left</div>
+                <div class="card-detail">Urgency ${t.urgency} · Priority ${t.userPriority} · Est ${t.estimatedTime}m · ${t.getMinutesRemaining()}m left</div>
             </div>
             <div class="card-score" style="color:${scoreColor}">${score === Infinity ? '∞' : score === -1 ? '✓' : score.toFixed(1)}</div>
         `;

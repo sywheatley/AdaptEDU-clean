@@ -1,6 +1,6 @@
 // AdaptEDU – Rebuilt Script
 // Features: week/month/day views · click-to-open detail popover
-//           archive (completed items move to archive tab, not disappear)
+//           archive (manual archive via popover)
 //           distinct category colors · Apple Calendar UX
 
 class Task {
@@ -215,9 +215,31 @@ function updateLabel() {
 function updateStats() {
     const active = tasks.filter(t => !t.archived);
     document.getElementById('stat-pending').textContent = active.filter(t => !t.completed).length;
-    document.getElementById('stat-done').textContent    = active.filter(t => t.completed).length;
     document.getElementById('stat-overdue').textContent = active.filter(t => t.isOverdue()).length;
     document.getElementById('stat-events').textContent  = events.filter(e => !e.archived).length;
+
+    const categories = ['school', 'work', 'personal', 'extracurricular', 'other'];
+    const counts = Object.fromEntries(categories.map(c => [c, 0]));
+
+    tasks.filter(t => !t.archived).forEach(t => {
+        const category = normCat(t.category);
+        counts[category] = (counts[category] || 0) + 1;
+    });
+    events.filter(e => !e.archived).forEach(e => {
+        const category = normCat(e.category);
+        counts[category] = (counts[category] || 0) + 1;
+    });
+
+    const maxCount = Math.max(1, ...Object.values(counts));
+    categories.forEach(category => {
+        const countEl = document.getElementById(`bar-count-${category}`);
+        const fillEl = document.getElementById(`cat-bar-${category}`);
+        if (!countEl || !fillEl) return;
+        const count = counts[category] || 0;
+        countEl.textContent = String(count);
+        const pct = Math.max(6, Math.round((count / maxCount) * 100));
+        fillEl.style.width = count === 0 ? '0%' : `${pct}%`;
+    });
 }
 
 // ══════════════════════════════════════════
@@ -313,9 +335,10 @@ function renderTimeGrid(numDays) {
         const block  = document.createElement('div');
         const catCls = normCat(item.category);
         block.className = `cal-block ${catCls}${isTask ? ' task-block' : ''}`;
+        if (isTask && item.completed) block.classList.add('completed-task-block');
         block.style.cssText = `top:${top}px;height:${height}px`;
         const timeStr = isTask
-            ? `Due ${fmtTime(item.dueDate)}`
+            ? `${item.completed ? 'Completed · was due' : 'Due'} ${fmtTime(item.dueDate)}`
             : `${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
         block.innerHTML = `<div class="block-title">${item.name}</div><div class="block-time">${timeStr}</div>`;
         block.addEventListener('click', e => { e.stopPropagation(); showPopover(item, e); });
@@ -405,6 +428,7 @@ function renderMonthView() {
             const pill = document.createElement('div');
             const catCls = normCat(item.category);
             pill.className = `month-event-pill ${catCls}${item.type === 'task' ? ' task-pill' : ''}`;
+            if (item.type === 'task' && item.completed) pill.classList.add('completed-task-pill');
             pill.textContent = item.name;
             pill.addEventListener('click', e => { e.stopPropagation(); showPopover(item, e); });
             cell.appendChild(pill);
@@ -484,15 +508,7 @@ function renderItem(item, container, isArchive) {
         chk.className = `card-checkbox${t.completed ? ' checked' : ''}`;
         chk.addEventListener('click', e => {
             e.stopPropagation();
-            if (!t.completed) {
-                t.completed = true;
-                t.archived  = true;
-                t.archivedAt = Date.now();
-            } else {
-                t.completed  = false;
-                t.archived   = false;
-                t.archivedAt = null;
-            }
+            t.completed = !t.completed;
             refreshAll();
         });
 
@@ -562,8 +578,6 @@ function showPopover(item, e) {
         if (!t.archived) {
             const btnComplete = btn('btn-complete', t.completed ? 'Mark Incomplete' : 'Mark Complete', () => {
                 t.completed  = !t.completed;
-                t.archived   = t.completed;
-                t.archivedAt = t.completed ? Date.now() : null;
                 pop.classList.add('hidden');
                 refreshAll();
             });

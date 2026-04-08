@@ -232,6 +232,58 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .red    { color: var(--accent-red); }
 .purple { color: var(--accent-purple); }
 
+.category-bars {
+    grid-column: 1 / -1;
+    margin-top: 2px;
+    padding: 10px 8px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+}
+
+.category-bar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.category-bar-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.bar-count {
+    margin-left: auto;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.category-bar-track {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--bg-dark);
+    overflow: hidden;
+}
+
+.category-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    transition: width 0.2s ease;
+}
+
+.category-bar-fill.school { background: var(--cat-school); }
+.category-bar-fill.work { background: var(--cat-work); }
+.category-bar-fill.personal { background: var(--cat-personal); }
+.category-bar-fill.extracurricular { background: var(--cat-extracurricular); }
+.category-bar-fill.other { background: var(--cat-other); }
+
 /* ── Content area ──────────────────────── */
 .content-area {
     display: flex;
@@ -466,6 +518,16 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .cal-block:hover { filter: brightness(1.15); }
 
+.cal-block.task-block.completed-task-block {
+    opacity: 0.45;
+    filter: saturate(0.4);
+    border-style: solid;
+}
+
+.cal-block.task-block.completed-task-block .block-title {
+    text-decoration: line-through;
+}
+
 .cal-block.school {
     background: rgba(79,142,247,0.25);
     border-left: 3px solid var(--cat-school);
@@ -594,6 +656,11 @@ button { cursor: pointer; border: none; font-family: var(--font); }
                                  { background: rgba(255,159,10,0.3);  color: #ffd080; }
 .month-event-pill.other         { background: rgba(99,99,102,0.3);   color: #b0b0c0; }
 .month-event-pill.task-pill     { opacity: 0.7; }
+.month-event-pill.task-pill.completed-task-pill {
+    opacity: 0.35;
+    filter: saturate(0.35);
+    text-decoration: line-through;
+}
 
 .month-more {
     font-size: 10px;

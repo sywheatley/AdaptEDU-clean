@@ -44,6 +44,13 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+.app-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 /* ══════════════════════════════════════════
    TOP BAR
 ══════════════════════════════════════════ */
@@ -154,6 +161,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .main-body {
     display: flex;
     flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -228,6 +236,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .content-area {
     display: flex;
     flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -245,6 +254,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     border-left: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    min-height: 0;
     flex-shrink: 0;
 }
 

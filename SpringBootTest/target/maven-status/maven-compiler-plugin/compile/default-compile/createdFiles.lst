@@ -1,3 +1,5 @@
+procrastination_alg/main_alg.class
 com/example/controller/AdaptEDUController.class
 com/example/Application.class
 com/example/config/CorsConfig.class
+com/example/controller/TaskDTO.class

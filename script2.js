@@ -605,6 +605,35 @@ function renderMonthView() {
     cal.appendChild(wrap);
 }
 
+// --- Backend Integration: Adjust Task Time ---
+/**
+ * Sends a task to the backend to adjust its estimated time using the main algorithm.
+ * @param {Task} task - The task object to adjust.
+ * @returns {Promise<Task>} The adjusted task object.
+ */
+async function adjustTaskTimeBackend(task) {
+    // Prepare payload matching TaskDTO
+    const payload = {
+        name: task.name,
+        category: task.category,
+        dueDate: task.dueDate.toISOString(),
+        userPriority: task.userPriority,
+        estimatedTime: task.estimatedTime,
+        completed: task.completed,
+        description: task.description,
+        minutesSpent: task.minutesSpent || 0
+    };
+    const response = await fetch('/api/task-time-adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    // Update the estimatedTime with the backend's adjustment
+    task.estimatedTime = data.estimatedTime;
+    return task;
+}
+
 // ══════════════════════════════════════════
 // TASK / ARCHIVE PANEL
 // ══════════════════════════════════════════

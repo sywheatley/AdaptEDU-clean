@@ -53,6 +53,7 @@ let tasks  = [];
 let events = [];
 const START_HOUR = 7;
 const END_HOUR   = 23;
+const STORAGE_KEY = 'adaptedu.calendar.state.v1';
 
 // ── Category colors (must match CSS) ──────────────────────────────────────
 const CAT_COLORS = {
@@ -69,7 +70,11 @@ function catColor(cat) { return CAT_COLORS[cat] || CAT_COLORS.other; }
 document.addEventListener('DOMContentLoaded', () => {
     snapToMonday(currentDate);
     setupListeners();
-    seedDemoData();
+    const loaded = loadState();
+    if (!loaded) {
+        seedDemoData();
+        saveState();
+    }
     refreshAll();
 });
 
@@ -196,6 +201,7 @@ function refreshAll() {
     const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'tasks';
     renderTaskList(activeTab);
     updateStats();
+    saveState();
 }
 
 function updateLabel() {
@@ -696,6 +702,108 @@ function seedDemoData() {
     events.push(new CalEvent("Soccer Practice", d(1, 16, 30), d(1, 18), "Sports Field", "FIXED",    "Extracurricular"));
     events.push(new CalEvent("Club Meeting",    d(3, 15), d(3, 16),  "Room 204",        "OPTIONAL", "Extracurricular"));
     events.push(new CalEvent("Work Shift",      d(2, 16), d(2, 20),  "Office",          "FIXED",    "Work"));
+}
+
+function saveState() {
+    try {
+        const payload = {
+            currentDate: currentDate.toISOString(),
+            currentView,
+            tasks: tasks.map(t => ({
+                id: t.id,
+                name: t.name,
+                category: t.category,
+                dueDate: t.dueDate.toISOString(),
+                urgency: t.urgency,
+                userPriority: t.userPriority,
+                estimatedTime: t.estimatedTime,
+                description: t.description,
+                completed: t.completed,
+                archived: t.archived,
+                minutesSpent: t.minutesSpent,
+                archivedAt: t.archivedAt
+            })),
+            events: events.map(ev => ({
+                id: ev.id,
+                name: ev.name,
+                startTime: ev.startTime.toISOString(),
+                endTime: ev.endTime.toISOString(),
+                location: ev.location,
+                status: ev.status,
+                category: ev.category,
+                archived: ev.archived,
+                archivedAt: ev.archivedAt
+            }))
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (err) {
+        console.warn('Failed to save local state:', err);
+    }
+}
+
+function loadState() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || !Array.isArray(parsed.tasks) || !Array.isArray(parsed.events)) {
+            return false;
+        }
+
+        tasks = parsed.tasks.map(t => {
+            const task = new Task(
+                t.name,
+                t.category,
+                t.dueDate,
+                t.urgency,
+                t.userPriority,
+                t.estimatedTime,
+                t.description,
+                !!t.completed
+            );
+            task.id = t.id || task.id;
+            task.archived = !!t.archived;
+            task.minutesSpent = Number.isFinite(t.minutesSpent) ? t.minutesSpent : 0;
+            task.archivedAt = t.archivedAt || null;
+            return task;
+        });
+
+        events = parsed.events.map(ev => {
+            const event = new CalEvent(
+                ev.name,
+                ev.startTime,
+                ev.endTime,
+                ev.location,
+                ev.status,
+                ev.category
+            );
+            event.id = ev.id || event.id;
+            event.archived = !!ev.archived;
+            event.archivedAt = ev.archivedAt || null;
+            return event;
+        });
+
+        if (parsed.currentDate) {
+            const restoredDate = new Date(parsed.currentDate);
+            if (!Number.isNaN(restoredDate.getTime())) {
+                currentDate = restoredDate;
+            }
+        }
+
+        if (['week', 'month', 'day'].includes(parsed.currentView)) {
+            currentView = parsed.currentView;
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === currentView);
+            });
+        }
+
+        return true;
+    } catch (err) {
+        console.warn('Failed to load local state; clearing invalid storage:', err);
+        localStorage.removeItem(STORAGE_KEY);
+        return false;
+    }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

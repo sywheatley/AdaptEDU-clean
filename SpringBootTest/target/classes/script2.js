@@ -54,6 +54,7 @@ let events = [];
 const START_HOUR = 7;
 const END_HOUR   = 23;
 const STORAGE_KEY = 'adaptedu.calendar.state.v1';
+let csvSyncTimer = null;
 
 // ── Category colors (must match CSS) ──────────────────────────────────────
 const CAT_COLORS = {
@@ -219,7 +220,7 @@ function setupListeners() {
 
 async function adjustEstimatedMinutes(fallbackMinutes, taskPayload) {
     try {
-        const response = await fetch('/api/task-time-adjust', {
+        const response = await fetch(buildApiUrl('/api/task-time-adjust'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(taskPayload)
@@ -242,6 +243,15 @@ async function adjustEstimatedMinutes(fallbackMinutes, taskPayload) {
         console.warn(`Time-adjust API unavailable. Using raw estimate: ${fallbackMinutes}m.`, error);
         return { minutes: fallbackMinutes, usedFallback: true };
     }
+}
+
+function buildApiUrl(path) {
+    const onSpringOrigin =
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+        window.location.port === '8080';
+
+    if (onSpringOrigin) return path;
+    return `http://localhost:8080${path}`;
 }
 
 function showTaskAdjustMessage(rawMinutes, adjustedMinutes, usedFallback) {
@@ -818,8 +828,31 @@ function saveState() {
             }))
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        queueCsvSync({ tasks: payload.tasks, events: payload.events });
     } catch (err) {
         console.warn('Failed to save local state:', err);
+    }
+}
+
+function queueCsvSync(payload) {
+    if (csvSyncTimer) clearTimeout(csvSyncTimer);
+    csvSyncTimer = setTimeout(() => {
+        syncStateToCsv(payload);
+    }, 900);
+}
+
+async function syncStateToCsv(payload) {
+    try {
+        const response = await fetch(buildApiUrl('/api/state/save-csv'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            console.warn(`CSV sync failed (${response.status}). Local storage is still saved.`);
+        }
+    } catch (error) {
+        console.warn('CSV sync unavailable. Local storage is still saved.', error);
     }
 }
 

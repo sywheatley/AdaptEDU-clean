@@ -31,7 +31,7 @@ class Task {
 }
 
 class CalEvent {
-    constructor(name, startTime, endTime, location, status, category) {
+    constructor(name, startTime, endTime, location, status, category, reminderEnabled = false, reminderEveryDays = 1) {
         this.id = `event_${Date.now()}_${Math.random().toString(36).slice(2)}`;
         this.type = 'event';
         this.name = name;
@@ -40,6 +40,8 @@ class CalEvent {
         this.location = location || '';
         this.status = status || 'FIXED';
         this.category = (category || 'other').toLowerCase();
+        this.reminderEnabled = reminderEnabled;
+        this.reminderEveryDays = parseInt(reminderEveryDays, 10) || 1;
         this.archived = false;
         this.archivedAt = null;
     }
@@ -55,6 +57,7 @@ const START_HOUR = 7;
 const END_HOUR   = 23;
 const STORAGE_KEY = 'adaptedu.calendar.state.v1';
 let csvSyncTimer = null;
+let lastAllClearMessageIndex = -1;
 
 // ── Category colors (must match CSS) ──────────────────────────────────────
 const CAT_COLORS = {
@@ -133,12 +136,27 @@ function setupListeners() {
     // Modals
     const taskModal  = document.getElementById('add-task-modal');
     const eventModal = document.getElementById('add-event-modal');
+    const eventReminderSelect = document.getElementById('event-reminder-enabled');
+    const eventReminderDaysGroup = document.getElementById('event-reminder-days-group');
+
+    const updateEventReminderVisibility = () => {
+        if (!eventReminderSelect || !eventReminderDaysGroup) return;
+        const shouldShow = eventReminderSelect.value === 'yes';
+        eventReminderDaysGroup.classList.toggle('hidden', !shouldShow);
+    };
 
     document.getElementById('add-task-btn').addEventListener('click', () => {
         clearTaskAdjustMessage();
         taskModal.classList.remove('hidden');
     });
-    document.getElementById('add-event-btn').addEventListener('click', () => eventModal.classList.remove('hidden'));
+    document.getElementById('add-event-btn').addEventListener('click', () => {
+        updateEventReminderVisibility();
+        eventModal.classList.remove('hidden');
+    });
+
+    if (eventReminderSelect) {
+        eventReminderSelect.addEventListener('change', updateEventReminderVisibility);
+    }
 
     [
         document.getElementById('close-task-modal'),
@@ -151,7 +169,10 @@ function setupListeners() {
     [
         document.getElementById('close-event-modal'),
         document.getElementById('cancel-event-btn'),
-    ].forEach(el => el.addEventListener('click', () => eventModal.classList.add('hidden')));
+    ].forEach(el => el.addEventListener('click', () => {
+        eventModal.classList.add('hidden');
+        updateEventReminderVisibility();
+    }));
 
     // Form: add task
     document.getElementById('task-form').addEventListener('submit', async e => {
@@ -198,12 +219,19 @@ function setupListeners() {
             f['event-end-time'].value,
             f['event-location'].value,
             f['event-status'].value,
-            f['event-category'].value
+            f['event-category'].value,
+            f['event-reminder-enabled'].value === 'yes',
+            f['event-reminder-every-days'].value
         ));
         refreshAll();
         eventModal.classList.add('hidden');
         f.reset();
+        f['event-reminder-enabled'].value = 'no';
+        f['event-reminder-every-days'].value = '1';
+        updateEventReminderVisibility();
     });
+
+    updateEventReminderVisibility();
 
     // Close popover on outside click
     document.addEventListener('click', e => {
@@ -450,7 +478,7 @@ function renderTimeGrid(numDays) {
         placeBlock(ev, colIdx, startFrac, endFrac, false);
     });
 
-    tasks.filter(t => !t.archived && t.dueDate >= currentDate && t.dueDate < weekEnd).forEach(t => {
+    tasks.filter(t => shouldShowTaskOnCalendar(t) && t.dueDate >= currentDate && t.dueDate < weekEnd).forEach(t => {
         const colIdx   = numDays === 1 ? 0 : dayIndex(t.dueDate);
         const endFrac   = timeFrac(t.dueDate);
         const startFrac = endFrac - t.estimatedTime / 60;
@@ -518,7 +546,7 @@ function renderMonthView() {
         const cellEnd   = new Date(cellDate); cellEnd.setHours(23,59,59,999);
 
         const dayEvents = events.filter(ev => !ev.archived && ev.startTime >= cellStart && ev.startTime <= cellEnd);
-        const dayTasks  = tasks.filter(t  => !t.archived  && t.dueDate  >= cellStart && t.dueDate  <= cellEnd);
+        const dayTasks  = tasks.filter(t  => shouldShowTaskOnCalendar(t) && t.dueDate >= cellStart && t.dueDate <= cellEnd);
 
         const allItems = [...dayEvents, ...dayTasks];
         const MAX_SHOW = 3;
@@ -568,26 +596,50 @@ function renderTaskList(tab = 'tasks') {
         return;
     }
 
+    if (tab === 'events') {
+        subhead.textContent = 'Upcoming Events ↓';
+        const activeEvents = events.filter(ev => !ev.archived).sort((a, b) => a.startTime - b.startTime);
+
+        if (activeEvents.length === 0) {
+            el.innerHTML = '<div class="empty-state">No upcoming events.<br>Add an event to see it here.</div>';
+            return;
+        }
+
+        activeEvents.forEach(ev => renderItem(ev, el, false));
+        return;
+    }
+
     // Tasks tab
     subhead.textContent = 'Priority Score ↓';
     const activeTasks  = tasks.filter(t  => !t.archived).sort((a, b) => b.getPriorityScore() - a.getPriorityScore());
-    const activeEvents = events.filter(ev => !ev.archived).sort((a, b) => a.startTime - b.startTime);
 
-    if (activeTasks.length === 0 && activeEvents.length === 0) {
-        el.innerHTML = '<div class="empty-state">All clear!<br>Add a task or event to get started.</div>';
+    if (activeTasks.length === 0) {
+        el.innerHTML = `<div class="empty-state">${getAllClearMessage()}</div>`;
         return;
     }
 
     if (activeTasks.length > 0) {
         activeTasks.forEach(t => renderItem(t, el, false));
     }
-    if (activeEvents.length > 0) {
-        const div = document.createElement('div');
-        div.className = 'section-divider';
-        div.textContent = 'UPCOMING EVENTS';
-        el.appendChild(div);
-        activeEvents.forEach(ev => renderItem(ev, el, false));
+}
+
+function getAllClearMessage() {
+    
+    const messages = [
+        'All clear!<br>Nothing left on the task list.',
+        'Nice work!<br>You have zero tasks left right now.',
+        'Yay!<br>The task list is empty.',
+        'You are all done!<br>Everything is checked off for now.',
+        'You did it!<br>Nothing pending at the moment.'
+    ];
+
+    let nextIndex = Math.floor(Math.random() * messages.length);
+    if (messages.length > 1 && nextIndex === lastAllClearMessageIndex) {
+        nextIndex = (nextIndex + 1) % messages.length;
     }
+
+    lastAllClearMessageIndex = nextIndex;
+    return messages[nextIndex];
 }
 
 function renderItem(item, container, isArchive) {
@@ -607,6 +659,9 @@ function renderItem(item, container, isArchive) {
         chk.addEventListener('click', e => {
             e.stopPropagation();
             t.completed = !t.completed;
+            t.archived = t.completed;
+            if (!t.completed) t.archivedAt = null;
+            if (t.completed) t.archivedAt = Date.now();
             refreshAll();
         });
 
@@ -634,7 +689,7 @@ function renderItem(item, container, isArchive) {
             <div class="card-info">
                 <div class="card-name">${ev.name}</div>
                 <div class="card-meta">${ev.startTime.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} · ${fmtTime(ev.startTime)}–${fmtTime(ev.endTime)}</div>
-                <div class="card-detail">${capFirst(ev.category)} · ${ev.status}</div>
+                <div class="card-detail">${capFirst(ev.category)} · ${ev.status}${ev.reminderEnabled ? ` · Remind every ${ev.reminderEveryDays} day(s)` : ''}</div>
             </div>
         `;
         card.addEventListener('click', e => showPopover(ev, e));
@@ -676,6 +731,8 @@ function showPopover(item, e) {
         if (!t.archived) {
             const btnComplete = btn('btn-complete', t.completed ? 'Mark Incomplete' : 'Mark Complete', () => {
                 t.completed  = !t.completed;
+                t.archived   = t.completed;
+                t.archivedAt = t.completed ? Date.now() : null;
                 pop.classList.add('hidden');
                 refreshAll();
             });
@@ -717,6 +774,7 @@ function showPopover(item, e) {
         row('📍', 'Location', ev.location);
         row('🏷', 'Category', capFirst(ev.category));
         row('📌', 'Status',   ev.status);
+        row('🔔', 'Reminder', ev.reminderEnabled ? `Every ${ev.reminderEveryDays} day(s) before event` : 'Off');
 
         if (!ev.archived) {
             const btnArc = btn('btn-archive', 'Archive', () => {
@@ -823,6 +881,8 @@ function saveState() {
                 location: ev.location,
                 status: ev.status,
                 category: ev.category,
+                reminderEnabled: ev.reminderEnabled,
+                reminderEveryDays: ev.reminderEveryDays,
                 archived: ev.archived,
                 archivedAt: ev.archivedAt
             }))
@@ -832,6 +892,10 @@ function saveState() {
     } catch (err) {
         console.warn('Failed to save local state:', err);
     }
+}
+
+function shouldShowTaskOnCalendar(task) {
+    return !task.archived || task.completed;
 }
 
 function queueCsvSync(payload) {
@@ -885,13 +949,21 @@ function loadState() {
         });
 
         events = parsed.events.map(ev => {
+            const reminderEveryDays = Number.isFinite(ev.reminderEveryDays)
+                ? ev.reminderEveryDays
+                : (Number.isFinite(ev.reminderEveryMinutes)
+                    ? Math.max(1, Math.round(ev.reminderEveryMinutes / (60 * 24)))
+                    : 1);
+
             const event = new CalEvent(
                 ev.name,
                 ev.startTime,
                 ev.endTime,
                 ev.location,
                 ev.status,
-                ev.category
+                ev.category,
+                !!ev.reminderEnabled,
+                reminderEveryDays
             );
             event.id = ev.id || event.id;
             event.archived = !!ev.archived;

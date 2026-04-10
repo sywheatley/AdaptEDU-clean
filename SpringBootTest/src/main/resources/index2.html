@@ -112,6 +112,7 @@
                     <!-- Tabs for switching between tasks and archive -->
                     <div class="task-panel-tabs">
                         <button class="tab-btn active" data-tab="tasks">Tasks</button>
+                        <button class="tab-btn" data-tab="events">Events</button>
                         <button class="tab-btn" data-tab="archive">Archive</button>
                     </div>
                     <!-- Subheader for task list sorting -->
@@ -230,6 +231,19 @@
                             <option value="Personal">Personal</option>
                             <option value="Extracurricular">Extracurricular</option>
                         </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="event-reminder-enabled">Reminder</label>
+                        <select id="event-reminder-enabled">
+                            <option value="no" selected>No reminder</option>
+                            <option value="yes">Remind me</option>
+                        </select>
+                    </div>
+                    <div class="form-group hidden" id="event-reminder-days-group">
+                        <label for="event-reminder-every-days">Remind every (days)</label>
+                        <input type="number" id="event-reminder-every-days" min="1" step="1" value="1">
                     </div>
                 </div>
             </form>

@@ -32,6 +32,8 @@ class EventDTO {
     public String location;
     public String status;
     public String category;
+    public boolean reminderEnabled;
+    public Integer reminderEveryDays;
     public boolean archived;
     public Long archivedAt;
 }
@@ -43,7 +45,7 @@ class CsvSyncRequest {
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(allowedOriginPatterns = "*")
+@CrossOrigin(origins = "*")
 public class AdaptEDUController {
     @GetMapping("/courses")
     public String getCourses() {
@@ -119,7 +121,7 @@ public class AdaptEDUController {
 
     private static void writeEventsCsv(List<EventDTO> events, Path path) throws IOException {
         StringBuilder out = new StringBuilder();
-        out.append("name,startTime,endTime,location,status,category,archived,archivedAt\n");
+        out.append("name,startTime,endTime,location,status,category,reminderEnabled,reminderEveryDays,archived,archivedAt\n");
         for (EventDTO event : events) {
             out.append(csv(event.name)).append(',')
                     .append(csv(event.startTime)).append(',')
@@ -127,6 +129,8 @@ public class AdaptEDUController {
                     .append(csv(event.location)).append(',')
                     .append(csv(event.status)).append(',')
                     .append(csv(event.category)).append(',')
+                    .append(event.reminderEnabled).append(',')
+                    .append(event.reminderEveryDays == null ? "" : event.reminderEveryDays).append(',')
                     .append(event.archived).append(',')
                     .append(event.archivedAt == null ? "" : event.archivedAt)
                     .append('\n');

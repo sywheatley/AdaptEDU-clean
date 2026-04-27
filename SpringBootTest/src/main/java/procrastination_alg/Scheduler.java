@@ -1,4 +1,4 @@
-package procrastination_alg;
+package Main_Algorithm;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -16,19 +16,10 @@ import java.util.LinkedHashMap;
 
 // Assuming Task, Event, and the procrastination algorithm are in the classpath.
 // You may need to ensure your project is set up to compile/access these files.
-//BIG PROBLEM - cannot handle tasks that cant be properly scheduled!
 
 public class Scheduler {
 
-    private TaskManager tasks;
-
-    public Scheduler(TaskManager taskManager) {
-        this.tasks = taskManager;
-    }
-
-    public Scheduler() {
-        this.tasks = new TaskManager();
-    }
+    private TaskManager tasks = new TaskManager();
 
     /**
      * A simple private class to represent a block of free time.
@@ -42,7 +33,7 @@ public class Scheduler {
             this.end = end;
         }
 
-        long getDurationInMinutes() {
+        public long getDurationInMinutes() {
             return Duration.between(start, end).toMinutes();
         }
 
@@ -54,6 +45,15 @@ public class Scheduler {
                     ", duration=" + getDurationInMinutes() + "min" +
                     '}';
         }
+    }
+
+    public LocalDateTime getFirstFreeTime(List<TimeSlot> freeSlots) {
+        for (TimeSlot time : freeSlots) {
+            if (time.getDurationInMinutes() > 0) {
+                return time.start;
+            }
+        }
+        return LocalDateTime.now();
     }
 
     /**
@@ -70,66 +70,36 @@ public class Scheduler {
      * @return A list of Event objects, including the original fixed events and new
      *         events for the scheduled tasks.
      */
-    
-    public List<Event> generateSchedule(List<Event> fixedEvents,
-        LocalDateTime scheduleStart, LocalDateTime scheduleEnd) {
-    return generateSchedule(fixedEvents, scheduleStart, scheduleEnd, null);
-    }
-    
     public List<Event> generateSchedule(List<Event> fixedEvents,
             LocalDateTime scheduleStart, LocalDateTime scheduleEnd, String filePath) {
 
-        if (filePath != null) tasks.insertTaskList(filePath);
+        tasks.insertTaskList(filePath);
         tasks.sortByDueDate();
-        // fixedEvents.add(new Event("Latest Night 1", LocalDateTime.MAX));
-        // fixedEvents.add(new Event("Latest Night 2",
-        // tasks.getTasks().get(0).getDueDate().plusDays(12)));
 
         // 1. Find all available time slots
         List<TimeSlot> freeSlots = findFreeTimeSlots(fixedEvents, scheduleStart, scheduleEnd);
-        // freeSlots.add(new TimeSlot(fixedEvents.get(fixedEvents.size() -
-        // 1).getEndTime(),
-        // fixedEvents.get(fixedEvents.size() - 1).getEndTime().plusDays(10)));
 
         // 2. Prioritize tasks to schedule the most important ones first
-        // CHANGE TO USE TASKMANAGER v
+
         tasks.sortByUrgency();
-        /*
-         * List<Task> sortedTasks = tasksToSchedule.stream()
-         * .filter(t -> !t.isCompleted()) // Don't schedule completed tasks
-         * .sorted(Comparator.comparing(Task::getPriorityScore).reversed())
-         * .collect(Collectors.toList());
-         */
+
         List<Event> scheduledTaskEvents = new ArrayList<>();
         Map<Task, Double> remainingTimes = new LinkedHashMap<>();
-        // CHANGE TO USE TASKMANAGER ^
 
         // 3. Fit tasks into free slots
-        long timeToWait = 250;
-        System.out.println("Starting fitting");
-        /*
-         * try {
-         * Thread.sleep(timeToWait);
-         * } catch (InterruptedException Ex) {
-         * Ex.printStackTrace();
-         * }
-         */
 
         tasks.procrastinate();
+        int sessionInDay = 0;
         while (tasks.getTasks().size() > 0) {
-            tasks.sortByUrgency();
-            System.out.println("Sorted: ");
-            System.out.println(tasks);
-            Task task = tasks.getTasks().get(0);
+            LocalDateTime time = getFirstFreeTime(freeSlots);
+            tasks.sortByUrgency(time);
 
-            System.out.println("got task: " + task.getName() + " " + task.getSession());
-            /*
-             * try {
-             * Thread.sleep(timeToWait);
-             * } catch (InterruptedException Ex) {
-             * Ex.printStackTrace();
-             * }
-             */
+            Task task = tasks.getTasks().get(0);
+            System.out.println(sessionInDay);
+            if (task.getPriorityScore() < -15 + 4 * sessionInDay) {
+                task = new Task("Break", "BREAK", LocalDateTime.MAX, 0, 120, false, 120, "Break");
+                sessionInDay = 0;
+            }
 
             // Adjust estimated time for a more realistic duration using the procrastination
             // model
@@ -140,67 +110,30 @@ public class Scheduler {
 
             // Find slots for the task, splitting if necessary
 
-            System.out.println("Starting timeslots");
-            /*
-             * try {
-             * Thread.sleep(timeToWait);
-             * } catch (InterruptedException Ex) {
-             * Ex.printStackTrace();
-             * }
-             */
-
             for (TimeSlot slot : freeSlots) {
-
-                System.out.println("Started freeslots: " + slot + slot.getDurationInMinutes());
-                /*
-                 * try {
-                 * Thread.sleep(timeToWait);
-                 * } catch (InterruptedException Ex) {
-                 * Ex.printStackTrace();
-                 * }
-                 */
 
                 long slotDuration = slot.getDurationInMinutes();
                 // Makes sure it accounts for used up free slots
                 if (slotDuration <= 5) {
-
-                    System.out.println("Continued");
-                    /*
-                     * try {
-                     * Thread.sleep(timeToWait / 2);
-                     * } catch (InterruptedException Ex) {
-                     * Ex.printStackTrace();
-                     * }
-                     */
-
                     continue;
-
                 }
-
                 // Take as much time as possible from the current slot
-                int timeToTake = (int) Math.min(slotDuration, remainingDuration);
-                System.out.println("Time to take: " + timeToTake);
+                int timeToTake = (int) Math.min(task.getMaxSessionLength(), Math.min(slotDuration, remainingDuration));
 
                 LocalDateTime taskStart = slot.start;
                 LocalDateTime taskEnd = taskStart.plusMinutes(timeToTake);
-                System.out.println("New end: " + taskEnd);
-
+                sessionInDay++;
                 // Create a new Event to represent the scheduled task session
 
-                System.out.println("Making Event: " + task.getName() + " " + task.getSession());
-                /*
-                 * try {
-                 * Thread.sleep(timeToWait);
-                 * } catch (InterruptedException Ex) {
-                 * Ex.printStackTrace();
-                 * }
-                 */
+                if (taskEnd.getHour() > 21)
+                    sessionInDay = 0;
 
                 Event taskEvent = new Event(
                         task.getName() + " (Session " + task.getSession() + ")",
                         taskStart, // The 'Date' field in Event is a bit redundant, but we use start time
                         taskStart,
                         taskEnd,
+                        task.getDueDate(),
                         task.getPriorityScore());
                 taskEvent.setStatus("SCHEDULED_TASK");
                 taskEvent.setDescription("Scheduled block for task: " + task.getName());
@@ -209,41 +142,18 @@ public class Scheduler {
                 }
 
                 taskSessions.add(taskEvent);
-
-                System.out.println("Removing Task: " + task.getName() + " " + task.getSession());
-                /*
-                 * try {
-                 * Thread.sleep(timeToWait);
-                 * } catch (InterruptedException Ex) {
-                 * Ex.printStackTrace();
-                 * }
-                 */
-
                 tasks.removeTask(task);
 
                 // Update the free slot by moving its start time forward
                 slot.start = taskEnd;
-                System.out.println("New Timeslot Time:" + slot);
                 remainingDuration -= timeToTake;
-                System.out.println("Remaining Duration: " + remainingDuration);
-                if (remainingDuration > 0.1) {
+                if (remainingDuration > 0.1 & !task.getCategory().equals("BREAK")) {
                     task.setSession(task.getSession() + 1);
                     task.setEstimatedTime(remainingDuration);
                     tasks.addTask(task);
 
-                    System.out.println(
-                            "Added Task: " + task.getName() + " " + task.getSession() + " " + task.getEstimatedTime());
-                    /*
-                     * try {
-                     * Thread.sleep(timeToWait);
-                     * } catch (InterruptedException Ex) {
-                     * Ex.printStackTrace();
-                     * }
-                     */
+                    tasks.sortByUrgency(time);
 
-                    tasks.sortByUrgency();
-                    System.out.println("Sorted: ");
-                    System.out.println(tasks);
                     break;
 
                 } else
@@ -251,21 +161,7 @@ public class Scheduler {
 
             }
 
-            // If the task was split into multiple sessions, label them
-            // if (taskSessions.size() > 1) {
-            // for (int i = 0; i < taskSessions.size(); i++) {
-            // taskSessions.get(i).setName(task.getName() + " (Session " + (i + 1) + ")");
-            // taskSessions.get(i).setSession(i);
-            // task.setSession(i);
-            // tasks.addTask(task);
-            // }
-            // }
-
             scheduledTaskEvents.addAll(taskSessions);
-
-            // if (remainingDuration > 0.1) {
-            // remainingTimes.put(task, remainingDuration);
-            // }
         }
 
         // 4. Combine fixed events with newly scheduled task events
@@ -291,67 +187,64 @@ public class Scheduler {
         List<TimeSlot> freeSlots = new ArrayList<>();
 
         // Filter events to be within our scheduling window and sort them
+        // THIS IS THE SOURCE OF ISSUES - filtering out too many events - causing
+        // overlaps
         List<Event> sortedEvents = events.stream()
                 .filter(e -> e.getStartTime() != null && e.getEndTime() != null)
-                .filter(e -> e.getEndTime().isAfter(windowStart) && e.getStartTime().isBefore(windowEnd))
-                .sorted(Comparator.comparing(Event::getStartTime))
                 .collect(Collectors.toList());
 
-        LocalDateTime currentTime = windowStart;
+        LocalDateTime currentTime = LocalDateTime.now().plusDays(1).withHour(8);
+        sortedEvents.sort((t1, t2) -> t1.getStartTime().compareTo(t2.getStartTime()));
 
         for (Event event : sortedEvents) {
-            // If there's a gap between the current time and the start of the next event,
-            // it's a free slot
-            if (currentTime.isBefore(event.getStartTime())) {
-                freeSlots.add(new TimeSlot(currentTime, event.getStartTime()));
-            }
-            // Move the current time to the end of the event, effectively handling overlaps
-            if (event.getEndTime().isAfter(currentTime)) {
-                currentTime = event.getEndTime();
+
+            while (currentTime.isBefore(event.getEndTime())) {
+                LocalDateTime setTimeWindow = currentTime.withHour(windowEnd.getHour());
+                LocalDateTime setTimeEvent = event.getStartTime();
+                LocalDateTime finalTime = event.getEndTime();
+                if (setTimeEvent.getHour() < windowStart.getHour()) {
+                    setTimeEvent = setTimeEvent.minusDays(1).withHour(windowEnd.getHour());
+                } else if (setTimeEvent.getHour() > windowEnd.getHour()) {
+                    setTimeEvent = setTimeEvent.withHour(windowEnd.getHour());
+                }
+                if (finalTime.getHour() < windowStart.getHour()) {
+                    finalTime = finalTime.withHour(windowStart.getHour());
+                } else if (finalTime.getHour() > windowEnd.getHour()) {
+                    finalTime = finalTime.plusDays(1).withHour(windowStart.getHour());
+                }
+                if (setTimeWindow.isBefore(setTimeEvent)) {
+                    freeSlots.add(new TimeSlot(currentTime, setTimeWindow));
+                    System.out
+                            .println("Freeslot: " + event.getName() + " --- " + currentTime + " --- " + setTimeWindow);
+                    currentTime = currentTime.plusDays(1).withHour(windowStart.getHour());
+                    if (currentTime.isAfter(event.getStartTime())) {
+                        currentTime = finalTime;
+                    }
+                } else {
+                    freeSlots.add(new TimeSlot(currentTime, setTimeEvent));
+                    System.out.println("Freeslot: " + event.getName() + " --- " + currentTime + " --- " + setTimeEvent);
+                    currentTime = finalTime;
+                }
             }
         }
 
+        System.out.println("Final Free: " + currentTime + " --- " + windowEnd);
+
         // Add a final 7 free slots
-        if (currentTime.isBefore(windowEnd)) {
+        if (currentTime.getHour() < windowEnd.getHour()) {
             freeSlots.add(new TimeSlot(currentTime, windowEnd));
+            System.out.println("Freeslot 1: " + currentTime + " --- " + windowEnd);
         }
-        for (int i = 70; i > 0; i--) {
-            currentTime = windowEnd.plusHours(10);
+        currentTime = currentTime.plusHours(windowEnd.getHour() - currentTime.getHour() + 10);
+        for (int i = 1; i <= 70; i++) {
+            // System.out.println("Current Time: " + currentTime);
+            currentTime = currentTime.plusHours(24);
             freeSlots.add(new TimeSlot(currentTime, currentTime.plusHours(14)));
+            System.out.println("Freeslot: " + currentTime + " --- " + currentTime.plusHours(14));
         }
 
         return freeSlots;
     }
-    /*
-     * private static List<Task> loadTasksFromCSV(String filePath) {
-     * List<Task> loadedTasks = new ArrayList<>();
-     * try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-     * String line = br.readLine(); // Skip header
-     * while ((line = br.readLine()) != null) {
-     * String[] values = line.split(",", -1);
-     * if (values.length >= 7) {
-     * try {
-     * loadedTasks.add(new Task(
-     * values[0], // name
-     * values[1], // category
-     * LocalDateTime.parse(values[2]), // dueDate
-     * Integer.parseInt(values[3]), // userPriority
-     * Integer.parseInt(values[4]), // estimatedTime
-     * Boolean.parseBoolean(values[5]), // completed
-     * values[6] // description
-     * ));
-     * } catch (Exception e) {
-     * System.err.println("Skipping invalid task row: " + line);
-     * }
-     * }
-     * }
-     * } catch (IOException e) {
-     * System.err.println("Warning: Could not load tasks from " + filePath + " (" +
-     * e.getMessage() + ")");
-     * }
-     * return loadedTasks;
-     * }
-     */
 
     private static List<Event> loadEventsFromCSV(String filePath) {
         List<Event> loadedEvents = new ArrayList<>();
@@ -393,15 +286,6 @@ public class Scheduler {
 
         // --- 1. Load Data From CSV ---
         List<Event> fixedEvents = loadEventsFromCSV("Main_Algorithm/events.csv");
-
-        /*
-         * if (fixedEvents.isEmpty() && tasks.isEmpty()) {
-         * System.out.println(
-         * "No data found in CSVs. Please make sure events.csv and tasks.csv exist in the running directory."
-         * );
-         * }
-         */
-
         // --- 2. Define the scheduling window ---
         // The test data in the CSV spans from May 19 to May 25, 2024.
         // We test the schedule for a specific day from the dataset (e.g., Monday, May
@@ -410,7 +294,6 @@ public class Scheduler {
         LocalDateTime scheduleStart = testDate.atTime(8, 0);
         LocalDateTime scheduleEnd = testDate.atTime(22, 0);
 
-        // COPY THIS PART IN V
         // --- 3. Generate and print the schedule ---
         System.out.println("Generating Schedule for " + testDate + "...\n");
         List<Event> fullSchedule = scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd,
@@ -419,6 +302,13 @@ public class Scheduler {
         System.out.println("--- Final Daily Schedule ---");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
+        // to detect overlaps:
+        boolean overlap = false;
+        boolean sleepLoss = false;
+        boolean overDue = false;
+        int index = 0;
+        Event overlapped = new Event("Placeholder", LocalDateTime.now());
 
         LocalDateTime date = LocalDateTime.MIN;
         for (Event e : fullSchedule) {
@@ -431,27 +321,45 @@ public class Scheduler {
 
             if ("SCHEDULED_TASK".equals(e.getStatus())) {
                 type = "SCHEDULED_TASK";
-
-                // Find the original task to get the user's estimate
-                /*
-                 * Task originalTask = tasks.stream()
-                 * .filter(t -> e.getName().equals(t.getName())
-                 * || e.getName().startsWith(t.getName() + " (Session"))
-                 * .findFirst().orElse(null);
-                 * if (originalTask != null) {
-                 * long actualScheduledMins = Duration.between(e.getStartTime(),
-                 * e.getEndTime()).toMinutes();
-                 * extraInfo = String.format(" (User Est: %d mins | Alg Calculated: %d mins)",
-                 * originalTask.getEstimatedTime(), actualScheduledMins);
-                 * }
-                 */
             }
 
             System.out.printf("[%s] %s to %s - %s %s%s\n",
                     type, e.getStartTime().format(timeFormatter), e.getEndTime().format(timeFormatter), e.getName(),
                     e.getPriorityScore(),
                     extraInfo);
+            if (index > 0) {
+                if (/* e.getStartTime().isBefore(fullSchedule.get(index - 1).getEndTime()) */ e.getStartTime()
+                        .getDayOfYear() <= fullSchedule.get(index - 1).getEndTime().getDayOfYear()
+                        & e.getStartTime().getHour() < fullSchedule.get(index - 1).getEndTime().getHour()) {
+                    if (e.getStatus().equals("SCHEDULED_TASK")
+                            || fullSchedule.get(index - 1).getStatus().equals("SCHEDULED_TASK")) {
+                        overlap = true;
+                        overlapped = e;
+                    }
+                    System.out.println("^^^^^ OVERLAP ^^^^^");
+                }
+
+            }
+            if (e.getDueDate().isBefore(e.getEndTime())) {
+                overDue = true;
+                System.out.println("!!! PREDICTED OVERDUE !!!");
+            }
+            if (e.getStartTime().getHour() < 8 || e.getEndTime().getHour() > 22) {
+                sleepLoss = true;
+                System.out.println("~~~ PREDICTED LOSS OF SLEEP ~~~ " + e.getStartTime().getHour() + " - "
+                        + e.getEndTime().getHour());
+            }
+            index++;
         }
-        // COPY THIS PART IN ^
+        if (overlap) {
+            System.out.println("OVERLAP DETECTED AT " + overlapped.getName());
+        }
+        if (overDue) {
+            System.out.println("OVERDUE ASSIGNMENT DETECTED");
+        }
+        if (sleepLoss) {
+            System.out.println("LOSS OF SLEEP DETECTED");
+        }
+        index = 0;
     }
 }

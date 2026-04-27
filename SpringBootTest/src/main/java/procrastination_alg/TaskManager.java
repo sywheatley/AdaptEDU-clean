@@ -1,15 +1,12 @@
 package procrastination_alg;
 
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
-import org.springframework.stereotype.Service; 
 import java.util.ArrayList;
 import java.util.List;
 
-@Service
 public class TaskManager {
 
     private ArrayList<Task> tasks; // List of tasks
@@ -34,7 +31,7 @@ public class TaskManager {
             String line = br.readLine(); // Skip header
             while ((line = br.readLine()) != null) {
                 String[] values = line.split(",", -1);
-                if (values.length >= 7) {
+                if (values.length >= 8) {
                     try {
                         loadedTasks.add(new Task(
                                 values[0], // name
@@ -43,7 +40,8 @@ public class TaskManager {
                                 Integer.parseInt(values[3]), // userPriority
                                 Integer.parseInt(values[4]), // estimatedTime
                                 Boolean.parseBoolean(values[5]), // completed
-                                values[6] // description
+                                Integer.parseInt(values[6]), // maximum session length
+                                values[7] // description
                         ));
                     } catch (Exception e) {
                         System.err.println("Skipping invalid task row: " + line);
@@ -110,6 +108,13 @@ public class TaskManager {
     }
 
     public void sortByUrgency() {
+        tasks.sort((t1, t2) -> Double.compare(t2.getPriorityScore(), t1.getPriorityScore()));
+    }
+
+    public void sortByUrgency(LocalDateTime day) {
+        for (Task task : tasks) {
+            task.calculatePriorityScore(day);
+        }
         tasks.sort((t1, t2) -> Double.compare(t2.getPriorityScore(), t1.getPriorityScore()));
     }
 

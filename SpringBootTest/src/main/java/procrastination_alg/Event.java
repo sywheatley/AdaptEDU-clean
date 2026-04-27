@@ -1,5 +1,4 @@
 package procrastination_alg;
-
 // UUID is nessisary to generate unique identifiers for each event, which is important for managing and referencing events in the calendar application. It allows us to easily identify and manipulate specific events without confusion, especially when there are multiple events with similar names or attributes.
 
 import java.time.LocalDateTime;
@@ -14,6 +13,7 @@ public class Event {
     private LocalDateTime Date; // date of the event
     private LocalDateTime startTime; // the start time of the event
     private LocalDateTime endTime; // the end time of the event
+    private LocalDateTime dueDate; // the due date of the event, only if the event is an assignment
     private int duration; // duration of the event, in minutes.
     private String location; // location of the event
     private int travelTime; // travel time for the event
@@ -25,7 +25,6 @@ public class Event {
     private int session;
     private double priorityScore; // priority score for incoming tasks
 
-    // Constructor for event with all attributes
     public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, int duration,
             String location, int travelTime, String status) {
         this.id = UUID.randomUUID().toString();
@@ -41,6 +40,26 @@ public class Event {
         this.recurrence = "NONE";
         session = 1;
         priorityScore = 1;
+        dueDate = LocalDateTime.MAX;
+    }
+
+    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
+            int duration,
+            String location, int travelTime, String status) {
+        this.id = UUID.randomUUID().toString();
+        this.name = name;
+        this.Date = Date;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.duration = duration;
+        this.location = location;
+        this.travelTime = travelTime;
+        this.status = status;
+        this.reminderMinutes = new ArrayList<>();
+        this.recurrence = "NONE";
+        session = 1;
+        priorityScore = 1;
+        this.dueDate = dueDate;
     }
 
     public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, int duration,
@@ -58,6 +77,7 @@ public class Event {
         this.recurrence = "NONE";
         session = 1;
         this.priorityScore = priorityScore;
+        dueDate = LocalDateTime.MAX;
     }
 
     // Constructor for event with only name and date (all day event)
@@ -69,6 +89,7 @@ public class Event {
         this.recurrence = "NONE";
         session = 1;
         priorityScore = 1;
+        dueDate = LocalDateTime.MAX;
     }
 
     // Constructor for event with name, date, and start and end time
@@ -82,6 +103,7 @@ public class Event {
         this.recurrence = "NONE";
         session = 1;
         priorityScore = 1;
+        dueDate = LocalDateTime.MAX;
     }
 
     public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime,
@@ -95,6 +117,21 @@ public class Event {
         this.recurrence = "NONE";
         session = 1;
         this.priorityScore = priorityScore;
+        dueDate = LocalDateTime.MAX;
+    }
+
+    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
+            double priorityScore) {
+        this.id = UUID.randomUUID().toString();
+        this.name = name;
+        this.Date = Date;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.reminderMinutes = new ArrayList<>();
+        this.recurrence = "NONE";
+        session = 1;
+        this.priorityScore = priorityScore;
+        this.dueDate = dueDate;
     }
 
     // Constructor for event with name, date, and duration
@@ -107,9 +144,14 @@ public class Event {
         this.recurrence = "NONE";
         session = 1;
         priorityScore = 1;
+        dueDate = LocalDateTime.MAX;
     }
 
     // Getters and Setters for event attributes
+    public LocalDateTime getDueDate() {
+        return dueDate;
+    }
+
     public double getPriorityScore() {
         return priorityScore;
     }

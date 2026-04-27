@@ -1,0 +1,107 @@
+name,category,dueDate,userPriority,estimatedTime,completed,maxSessionLength,description
+Clean Room,Chores,2026-05-25T12:00:00,4,60,false,120,Vacuum and dust
+Math Homework 1,School,2026-05-25T23:59:00,8,30,false,120,Chapter 5
+History Essay,School,2026-05-24T23:59:00,7,60,false,120,Drafting
+Read Book,Personal,2026-05-23T23:59:00,5,20,false,120,Read 1 chapter
+Science Project,School,2026-05-22T17:00:00,9,120,false,240,Build volcano
+Pay Bills,Chores,2026-05-22T20:00:00,8,15,false,120,Pay electricity and internet
+Spanish Worksheet,School,2026-05-21T23:59:00,6,45,false,60,Vocab practice
+Grocery Shopping,Chores,2026-05-20T18:00:00,5,60,false,240,Buy weekly groceries
+Grocery Shopping,Chores,2026-05-26T18:00:00,5,60,false,240,Buy weekly groceries
+Math Homework 2,School,2026-05-26T23:59:00,8,30,false,120,Chapter 6
+Math Homework 3,School,2026-05-27T23:59:00,8,30,false,120,Chapter 7
+Math Homework 4,School,2026-05-28T23:59:00,8,30,false,120,Chapter 8
+Call Grandparents,Personal,2026-05-24T18:00:00,6,30,false,120,Weekly catch up
+Sunday Prep,Personal,2026-05-19T20:00:00,5,45,false,120,Prepare for the week
+STEM Project,School,2026-05-29T23:59:00,8,6000,false,240,Get it all done
+English Essay,School,2026-05-30T23:59:00,7,90,false,180,Rough draft
+Laundry,Chores,2026-05-30T18:00:00,5,60,false,120,Washing and folding clothes
+Workout,Personal,2026-05-31T17:00:00,6,45,false,90,Cardio and strength
+Chemistry Homework,School,2026-06-01T23:59:00,8,60,false,120,Chapter 9 problems
+Clean Kitchen,Chores,2026-06-01T19:00:00,5,45,false,120,Dishes and counters
+Group Meeting,School,2026-06-02T16:00:00,7,60,false,120,Discuss project progress
+Read Articles,Personal,2026-06-02T21:00:00,4,30,false,60,Read 2 articles
+Biology Notes,School,2026-06-03T23:59:00,6,50,false,120,Review chapter notes
+Car Wash,Chores,2026-06-03T15:00:00,4,40,false,120,Exterior and interior cleaning
+Plan Weekend,Personal,2026-06-04T20:00:00,3,30,false,60,Decide activities
+Physics Homework,School,2026-06-05T23:59:00,8,60,false,120,Chapter 10 problems
+Take Out Trash,Chores,2026-06-05T19:00:00,4,15,false,60,Weekly trash removal
+Practice Guitar,Personal,2026-06-06T18:00:00,5,45,false,90,Practice chords and songs
+Write Journal,Personal,2026-06-06T21:00:00,3,20,false,60,Daily reflection
+Computer Science Assignment,School,2026-06-07T23:59:00,9,120,false,180,Implement sorting algorithm
+Mow Lawn,Chores,2026-06-07T17:00:00,5,60,false,120,Front and backyard
+Study for Quiz,School,2026-06-08T20:00:00,7,90,false,180,Review notes and flashcards
+Clean Bathroom,Chores,2026-06-08T18:00:00,5,45,false,120,Sink toilet and shower
+Yoga Session,Personal,2026-06-09T07:30:00,4,30,false,60,Morning routine
+Art Project,School,2026-06-09T23:59:00,6,120,false,180,Complete painting
+Organize Desk,Chores,2026-06-10T16:00:00,3,30,false,60,Declutter workspace
+Read Book,Personal,2026-06-10T22:00:00,4,25,false,60,Read 2 chapters
+Economics Homework,School,2026-06-11T23:59:00,7,60,false,120,Chapter 3 exercises
+Wash Dishes,Chores,2026-06-11T20:00:00,4,20,false,60,Evening cleanup
+Run Errands,Personal,2026-06-12T15:00:00,5,60,false,120,Post office and supplies
+Prepare Presentation,School,2026-06-12T23:59:00,8,90,false,180,Slides and notes
+Clean Garage,Chores,2026-06-13T14:00:00,5,120,false,240,Organize storage
+Meditation,Personal,2026-06-13T08:00:00,3,15,false,60,Mindfulness practice
+Geography Homework,School,2026-06-14T23:59:00,6,50,false,120,Map exercises
+Family Dinner,Personal,2026-06-14T19:00:00,5,90,false,180,Help cook and eat together
+Philosophy Essay,School,2026-06-15T23:59:00,7,80,false,180,Ethics paper draft
+Take Recycling Out,Chores,2026-06-15T19:00:00,4,15,false,60,Weekly recycling
+Practice Piano,Personal,2026-06-16T18:00:00,5,40,false,90,Scales and pieces
+Write Blog Post,Personal,2026-06-16T21:00:00,4,45,false,120,Tech topic
+Statistics Homework,School,2026-06-17T23:59:00,8,70,false,120,Problem set 4
+Clean Living Room,Chores,2026-06-17T18:30:00,5,50,false,120,Vacuum and organize
+Swim Practice,Personal,2026-06-18T17:00:00,6,60,false,120,Lap training
+Prepare Notes,School,2026-06-18T21:00:00,6,60,false,120,Summarize lectures
+Business Assignment,School,2026-06-19T23:59:00,7,90,false,180,Case study
+Wash Car,Chores,2026-06-19T16:00:00,4,45,false,120,Exterior clean
+Read Research Paper,School,2026-06-20T22:00:00,6,60,false,120,Analyze content
+Meditation Session,Personal,2026-06-20T08:00:00,3,20,false,60,Guided meditation
+Programming Practice,School,2026-06-21T23:59:00,9,120,false,240,Solve coding problems
+Organize Closet,Chores,2026-06-21T15:00:00,5,90,false,180,Sort clothes
+Go for Walk,Personal,2026-06-22T19:00:00,3,30,false,60,Evening walk
+Draft Presentation,School,2026-06-22T23:59:00,8,100,false,180,Slides outline
+Clean Fridge,Chores,2026-06-23T18:00:00,4,40,false,120,Remove old food
+Language Practice,Personal,2026-06-23T20:00:00,5,35,false,90,Practice vocabulary
+Physics Lab Report,School,2026-06-24T23:59:00,9,120,false,240,Write report
+Plan Trip,Personal,2026-06-24T21:00:00,4,60,false,120,Research destinations
+Algebra Review,School,2026-06-25T23:59:00,7,60,false,120,Practice problems
+Take Dog for Walk,Chores,2026-06-25T18:00:00,4,30,false,60,Evening walk
+Practice Drawing,Personal,2026-06-26T19:00:00,5,60,false,120,Sketching practice
+Write Essay Outline,School,2026-06-26T23:59:00,8,45,false,120,Outline ideas
+Clean Windows,Chores,2026-06-27T17:00:00,4,50,false,120,Indoor cleaning
+Read Novel,Personal,2026-06-27T21:00:00,4,40,false,90,Read chapters
+Chemistry Lab Prep,School,2026-06-28T23:59:00,8,60,false,120,Prepare materials
+Organize Backpack,Chores,2026-06-28T20:00:00,3,20,false,60,Declutter items
+Workout Session,Personal,2026-06-29T18:00:00,6,50,false,120,Strength training
+Write Code Assignment,School,2026-06-29T23:59:00,9,120,false,240,Complete coding task
+Dust Furniture,Chores,2026-06-30T17:30:00,4,30,false,90,Weekly dusting
+Read Articles,Personal,2026-06-30T22:00:00,3,25,false,60,Online reading
+Biology Worksheet,School,2026-07-01T23:59:00,7,50,false,120,Answer questions
+Take Out Compost,Chores,2026-07-01T19:00:00,3,15,false,60,Dispose compost
+Practice Singing,Personal,2026-07-02T18:00:00,5,45,false,90,Vocal exercises
+History Notes,School,2026-07-02T23:59:00,6,60,false,120,Summarize chapter
+Clean Floors,Chores,2026-07-03T18:00:00,5,60,false,120,Mop and sweep
+Plan Meals,Personal,2026-07-03T20:00:00,4,30,false,90,Weekly meal prep
+Economics Notes,School,2026-07-04T23:59:00,7,60,false,120,Review lecture
+Wash Laundry,Chores,2026-07-04T17:00:00,4,60,false,120,Clothes cleaning
+Morning Stretch,Personal,2026-07-05T08:00:00,3,20,false,60,Stretch routine
+Geology Homework,School,2026-07-05T23:59:00,7,70,false,120,Rock analysis
+Clean Shelves,Chores,2026-07-06T18:00:00,4,40,false,120,Dust shelves
+Practice Coding,School,2026-07-06T23:59:00,9,120,false,240,Algorithm problems
+Evening Run,Personal,2026-07-07T19:00:00,4,45,false,90,Jogging
+Write Report Draft,School,2026-07-07T23:59:00,8,100,false,180,Initial draft
+Organize Files,Chores,2026-07-08T17:00:00,3,30,false,60,Sort documents
+Read Blog,Personal,2026-07-08T21:00:00,3,20,false,60,Tech reading
+Math Practice,School,2026-07-09T23:59:00,8,60,false,120,Extra exercises
+Clean Kitchen Sink,Chores,2026-07-09T19:00:00,4,20,false,60,Scrub sink
+Meditate,Personal,2026-07-10T07:30:00,3,15,false,60,Relaxation
+Physics Problems,School,2026-07-10T23:59:00,8,70,false,120,Solve set
+Take Out Trash,Chores,2026-07-11T18:00:00,4,15,false,60,Weekly task
+Practice Guitar,Personal,2026-07-11T20:00:00,5,45,false,90,Play songs
+Write Summary,School,2026-07-12T23:59:00,7,50,false,120,Summarize reading
+Clean Desk,Chores,2026-07-12T17:00:00,3,25,false,60,Declutter desk
+Go Cycling,Personal,2026-07-13T18:00:00,5,60,false,120,Bike ride
+Prepare Assignment,School,2026-07-13T23:59:00,8,90,false,180,Finalize work
+Wash Dishes,Chores,2026-07-14T19:00:00,4,20,false,60,Evening cleanup
+Journal Writing,Personal,2026-07-14T21:00:00,3,20,false,60,Reflect
+Final Exam Study,School,2026-07-15T23:59:00,10,180,false,240,Comprehensive review

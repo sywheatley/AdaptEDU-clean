@@ -1,9 +1,1 @@
 name,category,dueDate,userPriority,estimatedTime,completed,description,minutesSpent,archived,archivedAt
-"Math Homework","school","2026-04-20T21:00:00.000Z",8,90,false,"Chapter 5 exercises",0,false,
-"Physics Lab Report","school","2026-04-22T16:00:00.000Z",6,60,false,"Include all graphs",0,false,
-"Team Presentation","work","2026-04-23T19:00:00.000Z",9,120,false,"Slides + script",0,false,
-"Journal Entry","personal","2026-04-22T00:00:00.000Z",4,20,false,"",0,false,
-"Overdue Assignment","school","2026-04-19T16:00:00.000Z",8,45,false,"Submit on portal",0,false,
-"finish ts","school","2026-04-22T19:00:00.000Z",5,100,false,"",0,false,
-"finish meow","school","2026-04-22T19:00:00.000Z",5,100,false,"",0,false,
-"meow","school","2026-04-22T19:00:00.000Z",5,150,false,"",0,false,

@@ -52,24 +52,10 @@ class ScheduleRequest {
     public String scheduleEnd;
 }
 
-@org.springframework.context.annotation.Configuration
-class AppConfig {
-    @org.springframework.context.annotation.Bean
-    public TaskManager taskManager() {
-        return new TaskManager();
-    }
-}
-
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(originPatterns = "*")
 public class AdaptEDUController {
-
-    private final TaskManager taskManager;
-
-    public AdaptEDUController(TaskManager taskManager) {
-        this.taskManager = taskManager;
-    }
 
     @PostMapping("/task-time-adjust")
     public TaskDTO adjustTaskTime(@RequestBody TaskDTO task) {
@@ -80,34 +66,18 @@ public class AdaptEDUController {
 
     @PostMapping("/schedule")
     public List<EventDTO> generateSchedule(@RequestBody ScheduleRequest request) {
-        TaskManager localTaskManager = new TaskManager();
-        if (request.tasks != null) {
-            for (TaskDTO dto : request.tasks) {
-                if (dto.completed || dto.archived) continue;
-                try {
-                    Task task = new Task(
-                        dto.name, dto.category,
-                        LocalDateTime.parse(dto.dueDate),
-                        dto.userPriority, dto.estimatedTime,
-                        dto.completed, dto.description
-                    );
-                    localTaskManager.addTask(task);
-                } catch (Exception e) {
-                    System.err.println("Skipping invalid task: " + dto.name);
-                }
-            }
-        }
-
         List<Event> fixedEvents = new ArrayList<>();
         if (request.events != null) {
             for (EventDTO dto : request.events) {
-                if (dto.archived) continue;
+                if (dto.archived) {
+                    continue;
+                }
                 try {
                     Event event = new Event(
-                        dto.name,
-                        LocalDateTime.parse(dto.startTime),
-                        LocalDateTime.parse(dto.startTime),
-                        LocalDateTime.parse(dto.endTime)
+                            dto.name,
+                            LocalDateTime.parse(dto.startTime),
+                            LocalDateTime.parse(dto.startTime),
+                            LocalDateTime.parse(dto.endTime)
                     );
                     if (dto.location != null) event.setLocation(dto.location);
                     if (dto.category != null) event.setCategory(dto.category);
@@ -122,8 +92,9 @@ public class AdaptEDUController {
         LocalDateTime start = LocalDateTime.parse(request.scheduleStart);
         LocalDateTime end = LocalDateTime.parse(request.scheduleEnd);
 
-        Scheduler scheduler = new Scheduler(localTaskManager);
-        List<Event> schedule = scheduler.generateSchedule(fixedEvents, start, end);
+        Scheduler scheduler = new Scheduler();
+        String taskCsvPath = resolveResourcePath("tasks.csv").toString();
+        List<Event> schedule = scheduler.generateSchedule(fixedEvents, start, end, taskCsvPath);
 
         return schedule.stream().map(e -> {
             EventDTO dto = new EventDTO();
@@ -141,16 +112,24 @@ public class AdaptEDUController {
     public Map<String, Object> saveStateCsv(@RequestBody CsvSyncRequest request) throws IOException {
         List<TaskDTO> tasks = request.tasks == null ? List.of() : request.tasks;
         List<EventDTO> events = request.events == null ? List.of() : request.events;
+
         writeTasksCsv(tasks, resolveResourcePath("tasks.csv"));
         writeEventsCsv(events, resolveResourcePath("events.csv"));
-        return Map.of("status", "ok", "tasksSaved", tasks.size(), "eventsSaved", events.size());
+
+        return Map.of(
+                "status", "ok",
+                "tasksSaved", tasks.size(),
+                "eventsSaved", events.size()
+        );
     }
 
     private static Path resolveResourcePath(String fileName) {
         Path inModule = Paths.get("src", "main", "resources", fileName);
         if (Files.exists(inModule.getParent())) return inModule;
+
         Path fromRepoRoot = Paths.get("SpringBootTest", "src", "main", "resources", fileName);
         if (Files.exists(fromRepoRoot.getParent())) return fromRepoRoot;
+
         return inModule;
     }
 
@@ -158,12 +137,17 @@ public class AdaptEDUController {
         StringBuilder out = new StringBuilder();
         out.append("name,category,dueDate,userPriority,estimatedTime,completed,description,minutesSpent,archived,archivedAt\n");
         for (TaskDTO task : tasks) {
-            out.append(csv(task.name)).append(',').append(csv(task.category)).append(',')
-               .append(csv(task.dueDate)).append(',').append(task.userPriority).append(',')
-               .append(task.estimatedTime).append(',').append(task.completed).append(',')
-               .append(csv(task.description)).append(',').append(task.minutesSpent).append(',')
-               .append(task.archived).append(',')
-               .append(task.archivedAt == null ? "" : task.archivedAt).append('\n');
+            out.append(csv(task.name)).append(',')
+                    .append(csv(task.category)).append(',')
+                    .append(csv(task.dueDate)).append(',')
+                    .append(task.userPriority).append(',')
+                    .append(task.estimatedTime).append(',')
+                    .append(task.completed).append(',')
+                    .append(csv(task.description)).append(',')
+                    .append(task.minutesSpent).append(',')
+                    .append(task.archived).append(',')
+                    .append(task.archivedAt == null ? "" : task.archivedAt)
+                    .append('\n');
         }
         Files.writeString(path, out.toString(), StandardCharsets.UTF_8);
     }
@@ -172,19 +156,24 @@ public class AdaptEDUController {
         StringBuilder out = new StringBuilder();
         out.append("name,startTime,endTime,location,status,category,reminderEnabled,reminderEveryDays,archived,archivedAt\n");
         for (EventDTO event : events) {
-            out.append(csv(event.name)).append(',').append(csv(event.startTime)).append(',')
-               .append(csv(event.endTime)).append(',').append(csv(event.location)).append(',')
-               .append(csv(event.status)).append(',').append(csv(event.category)).append(',')
-               .append(event.reminderEnabled).append(',')
-               .append(event.reminderEveryDays == null ? "" : event.reminderEveryDays).append(',')
-               .append(event.archived).append(',')
-               .append(event.archivedAt == null ? "" : event.archivedAt).append('\n');
+            out.append(csv(event.name)).append(',')
+                    .append(csv(event.startTime)).append(',')
+                    .append(csv(event.endTime)).append(',')
+                    .append(csv(event.location)).append(',')
+                    .append(csv(event.status)).append(',')
+                    .append(csv(event.category)).append(',')
+                    .append(event.reminderEnabled).append(',')
+                    .append(event.reminderEveryDays == null ? "" : event.reminderEveryDays).append(',')
+                    .append(event.archived).append(',')
+                    .append(event.archivedAt == null ? "" : event.archivedAt)
+                    .append('\n');
         }
         Files.writeString(path, out.toString(), StandardCharsets.UTF_8);
     }
 
     private static String csv(String value) {
         if (value == null) return "";
-        return "\"" + value.replace("\"", "\"\"") + "\"";
+        String escaped = value.replace("\"", "\"\"");
+        return "\"" + escaped + "\"";
     }
 }

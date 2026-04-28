@@ -53,6 +53,7 @@ let currentDate = new Date();          // anchor date for all views
 let currentView = 'week';              // 'week' | 'month' | 'day'
 let tasks  = [];
 let events = [];
+let scheduledBlocks = [];
 const START_HOUR = 7;
 const END_HOUR   = 23;
 const STORAGE_KEY = 'adaptedu.calendar.state.v1';
@@ -322,6 +323,7 @@ function refreshAll() {
     renderTaskList(activeTab);
     updateStats();
     saveState();
+    fetchScheduledBlocks();
 }
 
 function updateLabel() {
@@ -463,9 +465,11 @@ function renderTimeGrid(numDays) {
         block.className = `cal-block ${catCls}${isTask ? ' task-block' : ''}`;
         if (isTask && item.completed) block.classList.add('completed-task-block');
         block.style.cssText = `top:${top}px;height:${height}px`;
-        const timeStr = isTask
-            ? `${item.completed ? 'Completed · was due' : 'Due'} ${fmtTime(item.dueDate)}`
-            : `${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
+        const timeStr = isTask && item.type === 'scheduledBlock'
+            ? `${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`  // real slot
+            : isTask
+                ? `${item.completed ? 'Completed · was due' : 'Due'} ${fmtTime(item.dueDate)}`
+                : `${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
         block.innerHTML = `<div class="block-title">${item.name}</div><div class="block-time">${timeStr}</div>`;
         block.addEventListener('click', e => { e.stopPropagation(); showPopover(item, e); });
         col.appendChild(block);
@@ -478,12 +482,25 @@ function renderTimeGrid(numDays) {
         placeBlock(ev, colIdx, startFrac, endFrac, false);
     });
 
-    tasks.filter(t => shouldShowTaskOnCalendar(t) && t.dueDate >= currentDate && t.dueDate < weekEnd).forEach(t => {
-        const colIdx   = numDays === 1 ? 0 : dayIndex(t.dueDate);
-        const endFrac   = timeFrac(t.dueDate);
-        const startFrac = endFrac - t.estimatedTime / 60;
-        placeBlock(t, colIdx, startFrac, endFrac, true);
-    });
+    if (scheduledBlocks.length > 0) {
+        scheduledBlocks
+            .filter(b => b.startTime >= currentDate && b.startTime < weekEnd)
+            .forEach(b => {
+                const colIdx    = numDays === 1 ? 0 : dayIndex(b.startTime);
+                const startFrac = timeFrac(b.startTime);
+                const endFrac   = timeFrac(b.endTime);
+                placeBlock(b, colIdx, startFrac, endFrac, true);
+            });
+    } else {
+        tasks
+            .filter(t => shouldShowTaskOnCalendar(t) && t.dueDate >= currentDate && t.dueDate < weekEnd)
+            .forEach(t => {
+                const colIdx    = numDays === 1 ? 0 : dayIndex(t.dueDate);
+                const startFrac = timeFrac(t.dueDate);
+                const endFrac   = startFrac + 0.5;
+                placeBlock(t, colIdx, startFrac, endFrac, true);
+            });
+    }
 }
 
 function timeFrac(d) { return (d.getHours() - START_HOUR) + d.getMinutes() / 60; }

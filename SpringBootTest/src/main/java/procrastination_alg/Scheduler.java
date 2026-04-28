@@ -1,4 +1,4 @@
-package Main_Algorithm;
+package procrastination_alg;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

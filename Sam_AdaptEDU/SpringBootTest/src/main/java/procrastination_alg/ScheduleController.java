@@ -74,7 +74,17 @@ public class ScheduleController {
         LocalDateTime scheduleEnd = scheduleStart.withHour(endHour).withMinute(0);
         
         // Run the algorithm
-        return scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd, TASKS_CSV, startHour, endHour);
+        List<Event> fullSchedule = scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd, TASKS_CSV, startHour, endHour);
+        
+        System.out.println("\n=== SCHEDULER OUTPUT ===");
+        for (Event e : fullSchedule) {
+            if ("SCHEDULED_TASK".equals(e.getStatus())) {
+                System.out.println("Scheduled Task Block: '" + e.getName() + "' | Scheduled for: " + e.getStartTime() + " to " + e.getEndTime());
+            }
+        }
+        System.out.println("========================\n");
+        
+        return fullSchedule;
     }
 
     // --- CSV Writing Helpers ---

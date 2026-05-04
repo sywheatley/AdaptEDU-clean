@@ -4,15 +4,16 @@
 //           distinct category colors · Apple Calendar UX
 
 class Task {
-    constructor(name, category, dueDate, urgency, userPriority, estimatedTime, description = '', completed = false) {
+    constructor(name, category, dueDate, userPriority, estimatedTime, maxSessionLength = 120, description = '', completed = false) {
         this.id = `task_${Date.now()}_${Math.random().toString(36).slice(2)}`;
         this.type = 'task';
         this.name = name;
         this.category = (category || 'other').toLowerCase();
         this.dueDate = new Date(dueDate);
-        this.urgency = parseInt(urgency) || 5;
         this.userPriority = parseInt(userPriority) || 5;
         this.estimatedTime = parseInt(estimatedTime) || 60;
+        this.maxSessionLength = parseInt(maxSessionLength, 10);
+        if (isNaN(this.maxSessionLength)) this.maxSessionLength = 120;
         this.description = description;
         this.completed = completed;
         this.archived = false;
@@ -25,7 +26,7 @@ class Task {
         if (this.isOverdue()) return Infinity;
         if (this.completed) return -1;
         const tp = 10.0 / (this.getHoursUntilDue() + 1);
-        return this.urgency + this.userPriority + tp;
+        return this.userPriority + tp;
     }
     getMinutesRemaining() { return Math.max(0, this.estimatedTime - this.minutesSpent); }
 }
@@ -326,14 +327,15 @@ function setupListeners() {
         const f = e.target;
 
         const rawEstimatedMinutes = parseInt(f['task-estimated-time'].value, 10) || 0;
+        const maxSessionLength = parseInt(f['task-max-session-length'].value, 10) || 120;
 
         tasks.push(new Task(
             f['task-name'].value,
             f['task-category'].value,
             f['task-due-date'].value,
-            f['task-urgency'].value,
             f['task-priority'].value,
             rawEstimatedMinutes,
+            maxSessionLength,
             f['task-description'].value
         ));
         
@@ -518,10 +520,13 @@ function setGlobalTheme(color) {
 // ── Schedule Integration ───────────────────────────────────────────────────
 async function fetchScheduledBlocks() {
     try {
-        const response = await fetch(buildApiUrl(`/api/schedule?startHour=${START_HOUR}&endHour=${END_HOUR}`));
+        const response = await fetch(buildApiUrl(`/api/schedule?startHour=${START_HOUR}&endHour=${END_HOUR}&t=${Date.now()}`), {
+            cache: 'no-store'
+        });
         if (!response.ok) return;
         
         const scheduleData = await response.json();
+        console.log("Raw Backend Schedule Data:", scheduleData);
         
         // Filter out the algorithm's split blocks and format them for the UI
         scheduledBlocks = scheduleData
@@ -531,11 +536,16 @@ async function fetchScheduledBlocks() {
                 const baseTaskName = item.name.replace(/\s*\(Session \d+\)$/, '');
                 const matchedTask = tasks.find(t => t.name === baseTaskName);
                 
+                const parsedStart = parseBackendDate(item.startTime);
+                const parsedEnd = parseBackendDate(item.endTime);
+                
+                console.log(`Task Block '${item.name}' was placed on the calendar for:`, parsedStart.toLocaleString());
+
                 return {
                     type: 'scheduledBlock',
                     name: item.name, // The backend already formats this as "[Task Name] (Session X)"
-                    startTime: new Date(item.startTime),
-                    endTime: new Date(item.endTime),
+                    startTime: parsedStart,
+                    endTime: parsedEnd,
                     category: item.category || (matchedTask ? matchedTask.category : 'other'),
                     completed: matchedTask ? matchedTask.completed : false,
                     matchedTask: matchedTask
@@ -929,6 +939,7 @@ function renderItem(item, container, isArchive) {
         
         tooltip += `\nDue: ${t.dueDate.toLocaleDateString()} at ${fmtTime(t.dueDate)}`;
         tooltip += `\nEst. Time: ${t.estimatedTime}m`;
+        tooltip += `\nMax Session: ${t.maxSessionLength === -1 ? 'No Breaks' : t.maxSessionLength + 'm'}`;
         if (t.description) tooltip += `\nNotes: ${t.description}`;
         card.title = tooltip;
         
@@ -955,7 +966,7 @@ function renderItem(item, container, isArchive) {
             <div class="card-info">
                 <div class="card-name">${t.name}</div>
                 <div class="card-meta">${capFirst(t.category)} · Due ${t.dueDate.toLocaleDateString('en-US', {weekday:'short',month:'short',day:'numeric'})}</div>
-                <div class="card-detail">Urgency ${t.urgency} · Priority ${t.userPriority} · Est ${t.estimatedTime}m · ${t.getMinutesRemaining()}m left</div>
+                <div class="card-detail">Priority ${t.userPriority} · Est ${t.estimatedTime}m · Max Session: ${t.maxSessionLength === -1 ? 'None' : t.maxSessionLength + 'm'} · ${t.getMinutesRemaining()}m left</div>
             </div>
             <div class="card-score" style="color:${scoreColor}">${score === Infinity ? '∞' : score === -1 ? '✓' : score.toFixed(1)}</div>
         `;
@@ -1036,9 +1047,9 @@ function showPopover(item, e) {
         row('📅', 'Due',        t.dueDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
         row('⏰', 'Due time',   fmtTime(t.dueDate));
         row('🏷', 'Category',   capFirst(t.category));
-        row('🔥', 'Urgency',    `${t.urgency}/10`);
         row('⭐', 'Priority',   `${t.userPriority}/10`);
         row('⏱', 'Est. time',  `${t.estimatedTime} min`);
+        row('⏳', 'Max Session', t.maxSessionLength === -1 ? 'No Breaks' : `${t.maxSessionLength} min`);
         row('📝', 'Notes',      t.description);
         row('📊', 'Score',      t.isOverdue() ? 'OVERDUE' : t.getPriorityScore().toFixed(2));
 
@@ -1155,11 +1166,11 @@ function seedDemoData() {
         return x;
     };
 
-    tasks.push(new Task("Math Homework",       "School",          d(0, 17),  9, 8, 90,  "Chapter 5 exercises"));
-    tasks.push(new Task("Physics Lab Report",  "School",          d(2, 12),  6, 6, 60,  "Include all graphs"));
-    tasks.push(new Task("Team Presentation",   "Work",            d(3, 15),  8, 9, 120, "Slides + script"));
-    tasks.push(new Task("Journal Entry",       "Personal",        d(1, 20),  3, 4, 20,  ""));
-    tasks.push(new Task("Overdue Assignment",  "School",          d(-1, 12), 8, 8, 45,  "Submit on portal"));
+    tasks.push(new Task("Math Homework",       "School",          d(0, 17),  8, 90,  120, "Chapter 5 exercises"));
+    tasks.push(new Task("Physics Lab Report",  "School",          d(2, 12),  6, 60,  120, "Include all graphs"));
+    tasks.push(new Task("Team Presentation",   "Work",            d(3, 15),  9, 120, 120, "Slides + script"));
+    tasks.push(new Task("Journal Entry",       "Personal",        d(1, 20),  4, 20,  120, ""));
+    tasks.push(new Task("Overdue Assignment",  "School",          d(-1, 12), 8, 45,  120, "Submit on portal"));
 
     events.push(new CalEvent("School",          d(0,  8), d(0, 15), "Main Building",    "FIXED",    "School"));
     events.push(new CalEvent("School",          d(1,  8), d(1, 15), "Main Building",    "FIXED",    "School"));
@@ -1186,14 +1197,14 @@ function saveState(fetchSchedule = false) {
                 name: t.name,
                 category: t.category,
                 dueDate: formatLocalISO(t.dueDate),
-                urgency: t.urgency,
                 userPriority: t.userPriority,
                 estimatedTime: t.estimatedTime,
                 description: t.description,
                 completed: t.completed,
                 archived: t.archived,
                 minutesSpent: t.minutesSpent,
-                archivedAt: t.archivedAt
+                archivedAt: t.archivedAt,
+                maxSessionLength: t.maxSessionLength
             })),
             events: events.map(ev => ({
                 id: ev.id,
@@ -1261,9 +1272,9 @@ function loadState() {
                 t.name,
                 t.category,
                 t.dueDate,
-                t.urgency,
                 t.userPriority,
                 t.estimatedTime,
+                t.maxSessionLength,
                 t.description,
                 !!t.completed
             );
@@ -1322,4 +1333,13 @@ function normCat(cat) {
     const c = cat.toLowerCase();
     if (c === 'extra') return 'extracurricular';
     return c;
+}
+
+function parseBackendDate(val) {
+    if (!val) return new Date();
+    if (Array.isArray(val)) {
+        const [y, m, d, h = 0, min = 0, s = 0] = val;
+        return new Date(y, m - 1, d, h, min, s);
+    }
+    return new Date(val);
 }

@@ -78,6 +78,7 @@ public class Scheduler {
     public List<Event> generateSchedule(List<Event> fixedEvents,
             LocalDateTime scheduleStart, LocalDateTime scheduleEnd, String filePath, int startH, int endH) {
 
+        tasks.getTasks().clear(); // Ensure we don't accumulate duplicates from previous requests
         tasks.insertTaskList(filePath);
         
         // Filter out completed tasks so they don't invisibly block out your free time
@@ -99,18 +100,19 @@ public class Scheduler {
 
         tasks.procrastinate();
         int sessionInDay = 0;
-        while (tasks.getTasks().size() > 0) {
+        while (!tasks.getTasks().isEmpty()) {
             LocalDateTime time = getFirstFreeTime(freeSlots);
             tasks.sortByUrgency(time);
 
-            Task task = tasks.getTasks().get(0);
-            System.out.println(sessionInDay);
-            if (task.getPriorityScore() < -15 + 4 * sessionInDay) {
-                task = new Task("Break", "BREAK", LocalDateTime.MAX, 0, 120, false, 120, "Break");
+            Task originalTask = tasks.getTasks().get(0);
+            Task taskToSchedule = originalTask;
+            
+            if (sessionInDay >= 3 && originalTask.getPriorityScore() < -10) {
+                taskToSchedule = new Task("Break", "BREAK", LocalDateTime.MAX, 0, 15, false, 15, "Break");
                 sessionInDay = 0;
             }
 
-            int remainingDuration = task.getEstimatedTime();
+            int remainingDuration = taskToSchedule.getEstimatedTime();
             List<Event> taskSessions = new ArrayList<>();
 
             // Find slots for the task, splitting if necessary
@@ -130,8 +132,13 @@ public class Scheduler {
                     continue;
                 }
                 scheduledAny = true;
+            
+            int maxSession = taskToSchedule.getMaxSessionLength();
+            if (maxSession == -1) {
+                maxSession = Integer.MAX_VALUE; // No limit (No Breaks)
+            }
                 // Take as much time as possible from the current slot
-                int timeToTake = (int) Math.min(task.getMaxSessionLength(), Math.min(slotDuration, remainingDuration));
+            int timeToTake = (int) Math.min(maxSession, Math.min(slotDuration, remainingDuration));
 
                 // Lock chunks into 15-minute increments unless it's the final tiny piece
                 if (timeToTake >= 15) {
@@ -146,28 +153,28 @@ public class Scheduler {
                     sessionInDay = 0;
 
                 Event taskEvent = new Event(
-                        task.getName() + " (Session " + task.getSession() + ")",
+                        taskToSchedule.getName() + (taskToSchedule.getCategory().equals("BREAK") ? "" : " (Session " + taskToSchedule.getSession() + ")"),
                         taskStart, // The 'Date' field in Event is a bit redundant, but we use start time
                         taskStart,
                         taskEnd,
-                        task.getDueDate(),
-                        task.getPriorityScore());
+                        taskToSchedule.getDueDate(),
+                        taskToSchedule.getPriorityScore());
                 taskEvent.setStatus("SCHEDULED_TASK");
-                taskEvent.setDescription("Scheduled block for task: " + task.getName());
-                if (task.getCategory() != null) {
-                    taskEvent.setCategory(task.getCategory());
+                taskEvent.setDescription("Scheduled block for task: " + taskToSchedule.getName());
+                if (taskToSchedule.getCategory() != null) {
+                    taskEvent.setCategory(taskToSchedule.getCategory());
                 }
 
                 taskSessions.add(taskEvent);
-                tasks.removeTask(task);
+                tasks.removeTask(taskToSchedule); // If break, it skips. If originalTask, removes it.
 
                 // Update the free slot by moving its start time forward
                 slot.start = taskEnd;
                 remainingDuration -= timeToTake;
-                if (remainingDuration > 0.1 && !task.getCategory().equals("BREAK")) {
-                    task.setSession(task.getSession() + 1);
-                    task.setEstimatedTime(remainingDuration);
-                    tasks.addTask(task);
+                if (remainingDuration > 0.1 && !taskToSchedule.getCategory().equals("BREAK")) {
+                    taskToSchedule.setSession(taskToSchedule.getSession() + 1);
+                    taskToSchedule.setEstimatedTime(remainingDuration);
+                    tasks.addTask(taskToSchedule);
 
                     tasks.sortByUrgency(time);
 
@@ -179,8 +186,8 @@ public class Scheduler {
             }
 
             if (!scheduledAny) {
-                remainingTimes.put(task, (double) remainingDuration);
-                tasks.removeTask(task);
+                remainingTimes.put(originalTask, (double) originalTask.getEstimatedTime());
+                tasks.removeTask(originalTask); // Must remove originalTask to prevent infinite loop
             }
             scheduledTaskEvents.addAll(taskSessions);
         }
@@ -207,53 +214,49 @@ public class Scheduler {
     private List<TimeSlot> findFreeTimeSlots(List<Event> events, LocalDateTime windowStart, LocalDateTime windowEnd, int startH, int endH) {
         List<TimeSlot> freeSlots = new ArrayList<>();
 
-        // Filter events to be within our scheduling window and sort them
-        // THIS IS THE SOURCE OF ISSUES - filtering out too many events - causing
-        // overlaps
         List<Event> sortedEvents = events.stream()
                 .filter(e -> e.getStartTime() != null && e.getEndTime() != null)
+                .sorted(Comparator.comparing(Event::getStartTime))
                 .collect(Collectors.toList());
 
         LocalDateTime currentTime = windowStart;
-        sortedEvents.sort((t1, t2) -> t1.getStartTime().compareTo(t2.getStartTime()));
 
         for (Event event : sortedEvents) {
+            if (currentTime.getHour() >= endH) currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0).withSecond(0).withNano(0);
+            if (currentTime.getHour() < startH) currentTime = currentTime.withHour(startH).withMinute(0).withSecond(0).withNano(0);
 
-            while (currentTime.isBefore(event.getEndTime())) {
-                LocalDateTime setTimeWindow = currentTime.withHour(endH).withMinute(0);
-                LocalDateTime setTimeEvent = event.getStartTime();
-                LocalDateTime finalTime = event.getEndTime();
-                if (setTimeEvent.getHour() < startH) {
-                    setTimeEvent = setTimeEvent.minusDays(1).withHour(endH).withMinute(0);
-                } else if (setTimeEvent.getHour() >= endH) {
-                    setTimeEvent = setTimeEvent.withHour(endH).withMinute(0);
+            if (!currentTime.isBefore(event.getEndTime())) continue; // Skip events in the past
+
+            while (currentTime.isBefore(event.getStartTime())) {
+                if (currentTime.getHour() >= endH) currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0).withSecond(0).withNano(0);
+                if (currentTime.getHour() < startH) currentTime = currentTime.withHour(startH).withMinute(0).withSecond(0).withNano(0);
+                
+                if (!currentTime.isBefore(event.getStartTime())) break;
+
+                LocalDateTime endOfDay = currentTime.withHour(endH).withMinute(0).withSecond(0).withNano(0);
+                LocalDateTime slotEnd = event.getStartTime().isBefore(endOfDay) ? event.getStartTime() : endOfDay;
+                
+                if (currentTime.isBefore(slotEnd)) {
+                    freeSlots.add(new TimeSlot(currentTime, slotEnd));
                 }
-                if (finalTime.getHour() < startH) {
-                    finalTime = finalTime.withHour(startH).withMinute(0);
-                } else if (finalTime.getHour() >= endH) {
-                    finalTime = finalTime.plusDays(1).withHour(startH).withMinute(0);
-                }
-                if (setTimeWindow.isBefore(setTimeEvent)) {
-                    freeSlots.add(new TimeSlot(currentTime, setTimeWindow));
-                    currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0);
-                    if (currentTime.isAfter(event.getStartTime())) {
-                        currentTime = finalTime;
-                    }
-                } else {
-                    freeSlots.add(new TimeSlot(currentTime, setTimeEvent));
-                    currentTime = finalTime;
-                }
+                currentTime = slotEnd;
+            }
+
+            if (currentTime.isBefore(event.getEndTime())) {
+                currentTime = event.getEndTime();
             }
         }
 
-        if (currentTime.getHour() < endH) {
-            freeSlots.add(new TimeSlot(currentTime, currentTime.withHour(endH).withMinute(0)));
-        }
-        
-        currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0);
-        for (int i = 1; i <= 70; i++) {
-            freeSlots.add(new TimeSlot(currentTime, currentTime.withHour(endH).withMinute(0)));
-            currentTime = currentTime.plusDays(1);
+        // Fill the rest of the days into the future to ensure enough space
+        for (int i = 0; i < 70; i++) {
+            if (currentTime.getHour() >= endH) currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0).withSecond(0).withNano(0);
+            if (currentTime.getHour() < startH) currentTime = currentTime.withHour(startH).withMinute(0).withSecond(0).withNano(0);
+
+            LocalDateTime endOfDay = currentTime.withHour(endH).withMinute(0).withSecond(0).withNano(0);
+            if (currentTime.isBefore(endOfDay)) {
+                freeSlots.add(new TimeSlot(currentTime, endOfDay));
+            }
+            currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0).withSecond(0).withNano(0);
         }
 
         return freeSlots;
@@ -264,7 +267,7 @@ public class Scheduler {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line = br.readLine(); // Skip header
             while ((line = br.readLine()) != null) {
-                String[] values = line.split(",", -1);
+                String[] values = TaskManager.parseCsvLine(line);
                 if (values.length >= 7) {
                     try {
                         LocalDateTime start = LocalDateTime.parse(values[1]);

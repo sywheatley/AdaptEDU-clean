@@ -10,7 +10,7 @@ public class Event {
 
     private String id; // unique identifier for the event
     private String name; // name of event
-    private LocalDateTime Date; // date of the event
+    private LocalDateTime date; // date of the event
     private LocalDateTime startTime; // the start time of the event
     private LocalDateTime endTime; // the end time of the event
     private LocalDateTime dueDate; // the due date of the event, only if the event is an assignment
@@ -25,11 +25,11 @@ public class Event {
     private int session;
     private double priorityScore; // priority score for incoming tasks
 
-    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, int duration,
+    public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, int duration,
             String location, int travelTime, String status) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
         this.duration = duration;
@@ -43,12 +43,12 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
-    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
+    public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
             int duration,
             String location, int travelTime, String status) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
         this.duration = duration;
@@ -62,11 +62,11 @@ public class Event {
         this.dueDate = dueDate;
     }
 
-    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, int duration,
+    public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, int duration,
             String location, int travelTime, String status, double priorityScore) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
         this.duration = duration;
@@ -81,10 +81,10 @@ public class Event {
     }
 
     // Constructor for event with only name and date (all day event)
-    public Event(String name, LocalDateTime Date) {
+    public Event(String name, LocalDateTime date) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.reminderMinutes = new ArrayList<>();
         this.recurrence = "NONE";
         session = 1;
@@ -93,10 +93,10 @@ public class Event {
     }
 
     // Constructor for event with name, date, and start and end time
-    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime) {
+    public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
         this.reminderMinutes = new ArrayList<>();
@@ -106,11 +106,11 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
-    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime,
+    public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime,
             double priorityScore) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
         this.reminderMinutes = new ArrayList<>();
@@ -120,11 +120,11 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
-    public Event(String name, LocalDateTime Date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
+    public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
             double priorityScore) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.startTime = startTime;
         this.endTime = endTime;
         this.reminderMinutes = new ArrayList<>();
@@ -135,10 +135,10 @@ public class Event {
     }
 
     // Constructor for event with name, date, and duration
-    public Event(String name, LocalDateTime Date, int duration) {
+    public Event(String name, LocalDateTime date, int duration) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
-        this.Date = Date;
+        this.date = date;
         this.duration = duration;
         this.reminderMinutes = new ArrayList<>();
         this.recurrence = "NONE";
@@ -177,11 +177,11 @@ public class Event {
     }
 
     public LocalDateTime getDate() {
-        return Date;
+        return date;
     }
 
-    public void setDate(LocalDateTime Date) {
-        this.Date = Date;
+    public void setDate(LocalDateTime date) {
+        this.date = date;
     }
 
     public LocalDateTime getStartTime() {
@@ -299,7 +299,7 @@ public class Event {
         return "Event{" +
                 "id='" + id + '\'' +
                 ", name='" + name + '\'' +
-                ", Date=" + Date +
+                ", date=" + date +
                 ", startTime=" + startTime +
                 ", endTime=" + endTime +
                 ", location='" + location + '\'' +

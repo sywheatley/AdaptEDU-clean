@@ -54,33 +54,74 @@ let currentView = 'week';              // 'week' | 'month' | 'day'
 let tasks  = [];
 let events = [];
 let scheduledBlocks = [];
-const START_HOUR = 7;
-const END_HOUR   = 23;
+let START_HOUR = 8;
+let END_HOUR   = 22;
+let globalTheme = 'black';
 const STORAGE_KEY = 'adaptedu.calendar.state.v1';
 let csvSyncTimer = null;
 let lastAllClearMessageIndex = -1;
+let sessionCheckInterval = null;
+
+// ── Pomodoro State ──
+let pomoInterval = null;
+let pomoTimeLeft = 25 * 60;
+let pomoIsWorking = true;
+let pomoIsRunning = false;
+let pomoWorkDuration = 25;
+let pomoBreakDuration = 5;
+let currentPomoBlock = null;
 
 // ── Category colors (must match CSS) ──────────────────────────────────────
 const CAT_COLORS = {
-    school:          '#4f8ef7',
-    work:            '#34c759',
-    personal:        '#bf5af2',
-    extracurricular: '#ff9f0a',
-    extra:           '#ff9f0a',
-    other:           '#636366',
+    school:          '#82b1ff',
+    work:            '#a5d6a7',
+    personal:        '#ce93d8',
+    extracurricular: '#ffb74d',
+    extra:           '#ffb74d',
+    other:           '#b0bec5',
 };
 function catColor(cat) { return CAT_COLORS[cat] || CAT_COLORS.other; }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    snapToMonday(currentDate);
+    const savedSettings = JSON.parse(localStorage.getItem('adaptedu.settings') || '{}');
+    if (savedSettings.theme) globalTheme = savedSettings.theme;
+    if (savedSettings.startHour !== undefined) START_HOUR = parseInt(savedSettings.startHour, 10);
+    if (savedSettings.endHour !== undefined) END_HOUR = parseInt(savedSettings.endHour, 10);
+    
+    setGlobalTheme(globalTheme);
+
     setupListeners();
     const loaded = loadState();
     if (!loaded) {
         seedDemoData();
         saveState();
     }
-    refreshAll();
+    // Always force calendar to open to the current actual date on load
+    currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    // Auto-switch to Day view on mobile for better UX
+    if (window.innerWidth <= 768 && currentView !== 'day') {
+        currentView = 'day';
+        document.querySelectorAll('.view-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.view === 'day');
+        });
+    }
+
+    if (currentView === 'week') snapToMonday(currentDate);
+    refreshAll(true);
+    
+    // Start checking for active sessions
+    if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+    sessionCheckInterval = setInterval(checkActiveSession, 10000);
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('Service Worker registered', reg))
+            .catch(err => console.warn('Service Worker registration failed', err));
+    }
 });
 
 function snapToMonday(d) {
@@ -92,6 +133,28 @@ function snapToMonday(d) {
 
 // ── Event Listeners ────────────────────────────────────────────────────────
 function setupListeners() {
+    // Mobile Panel Toggles
+    const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    if (mobileSidebarToggle && sidebar) {
+        mobileSidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('mobile-open');
+            mobileSidebarToggle.textContent = sidebar.classList.contains('mobile-open') ? 'Hide Filters & Stats ▲' : 'Show Filters & Stats ▼';
+        });
+    }
+
+    const mobileTasksToggle = document.getElementById('mobile-tasks-toggle');
+    const taskPanel = document.querySelector('.task-list-panel');
+    if (mobileTasksToggle && taskPanel) {
+        mobileTasksToggle.addEventListener('click', () => {
+            taskPanel.classList.toggle('mobile-open');
+            mobileTasksToggle.textContent = taskPanel.classList.contains('mobile-open') ? 'Hide Tasks & Events ▲' : 'Show Tasks & Events ▼';
+            if (taskPanel.classList.contains('mobile-open')) {
+                setTimeout(() => taskPanel.scrollIntoView({ behavior: 'smooth' }), 50);
+            }
+        });
+    }
+
     // Navigation
     document.getElementById('prev-btn').addEventListener('click', () => {
         if (currentView === 'week')  currentDate.setDate(currentDate.getDate() - 7);
@@ -107,7 +170,8 @@ function setupListeners() {
     });
     document.getElementById('today-btn').addEventListener('click', () => {
         currentDate = new Date();
-        if (currentView === 'week' || currentView === 'day') snapToMonday(currentDate);
+        currentDate.setHours(0, 0, 0, 0);
+        if (currentView === 'week') snapToMonday(currentDate);
         refreshAll();
     });
 
@@ -123,6 +187,89 @@ function setupListeners() {
             }
             refreshAll();
         });
+    });
+
+    // Pomodoro listeners
+    document.getElementById('pomodoro-btn').addEventListener('click', openPomodoro);
+    document.getElementById('pomo-popup-join').addEventListener('click', openPomodoro);
+    document.getElementById('close-pomo-btn').addEventListener('click', closePomodoro);
+
+    document.getElementById('pomo-start-pause-btn').addEventListener('click', () => {
+        if (pomoIsRunning) pausePomodoro();
+        else startPomodoro();
+    });
+
+    document.getElementById('pomo-skip-btn').addEventListener('click', () => {
+        switchPomoPhase(!pomoIsWorking);
+    });
+
+    document.querySelectorAll('.pomo-mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.pomo-mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            pomoWorkDuration = parseInt(btn.dataset.work, 10);
+            pomoBreakDuration = parseInt(btn.dataset.break, 10);
+            
+            // If not running, reset timer to new duration
+            if (!pomoIsRunning) {
+                pomoTimeLeft = (pomoIsWorking ? pomoWorkDuration : pomoBreakDuration) * 60;
+                updatePomoDisplay();
+            }
+        });
+    });
+
+    // Pomodoro theme selector
+    document.querySelectorAll('.pomo-color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const color = btn.dataset.color;
+            setPomodoroTheme(color);
+            localStorage.setItem('adaptedu.pomoTheme', color);
+        });
+    });
+    const savedPomoTheme = localStorage.getItem('adaptedu.pomoTheme') || 'black';
+    setPomodoroTheme(savedPomoTheme);
+
+    // Settings Menu
+    const settingsModal = document.getElementById('settings-modal');
+    document.getElementById('settings-btn').addEventListener('click', () => {
+        document.getElementById('settings-wake').value = `${String(START_HOUR).padStart(2, '0')}:00`;
+        document.getElementById('settings-sleep').value = `${String(END_HOUR).padStart(2, '0')}:00`;
+        
+        document.querySelectorAll('.global-color-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.color === globalTheme);
+        });
+        settingsModal.classList.remove('hidden');
+    });
+    
+    ['close-settings-modal', 'cancel-settings-btn'].forEach(id => {
+        document.getElementById(id).addEventListener('click', () => settingsModal.classList.add('hidden'));
+    });
+    
+    let tempTheme = globalTheme;
+    document.querySelectorAll('.global-color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.global-color-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            tempTheme = btn.dataset.color;
+        });
+    });
+    
+    document.getElementById('settings-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        globalTheme = tempTheme;
+        setGlobalTheme(globalTheme);
+        
+        const wake = document.getElementById('settings-wake').value;
+        const sleep = document.getElementById('settings-sleep').value;
+        START_HOUR = parseInt(wake.split(':')[0], 10);
+        END_HOUR = parseInt(sleep.split(':')[0], 10);
+        
+        if (START_HOUR >= END_HOUR) { alert("Wake up time must be before sleep time!"); return; }
+        
+        localStorage.setItem('adaptedu.settings', JSON.stringify({ theme: globalTheme, startHour: START_HOUR, endHour: END_HOUR }));
+        settingsModal.classList.add('hidden');
+        refreshAll(true);
     });
 
     // Task/Archive tabs
@@ -147,7 +294,6 @@ function setupListeners() {
     };
 
     document.getElementById('add-task-btn').addEventListener('click', () => {
-        clearTaskAdjustMessage();
         taskModal.classList.remove('hidden');
     });
     document.getElementById('add-event-btn').addEventListener('click', () => {
@@ -164,7 +310,6 @@ function setupListeners() {
         document.getElementById('cancel-task-btn'),
     ].forEach(el => el.addEventListener('click', () => {
         taskModal.classList.add('hidden');
-        clearTaskAdjustMessage();
     }));
 
     [
@@ -176,22 +321,11 @@ function setupListeners() {
     }));
 
     // Form: add task
-    document.getElementById('task-form').addEventListener('submit', async e => {
+    document.getElementById('task-form').addEventListener('submit', e => {
         e.preventDefault();
         const f = e.target;
 
         const rawEstimatedMinutes = parseInt(f['task-estimated-time'].value, 10) || 0;
-        const adjustmentResult = await adjustEstimatedMinutes(rawEstimatedMinutes, {
-            name: f['task-name'].value,
-            category: f['task-category'].value,
-            dueDate: f['task-due-date'].value,
-            userPriority: parseInt(f['task-priority'].value, 10) || 5,
-            estimatedTime: rawEstimatedMinutes,
-            completed: false,
-            description: f['task-description'].value,
-            minutesSpent: 0
-        });
-        showTaskAdjustMessage(rawEstimatedMinutes, adjustmentResult.minutes, adjustmentResult.usedFallback);
 
         tasks.push(new Task(
             f['task-name'].value,
@@ -199,37 +333,41 @@ function setupListeners() {
             f['task-due-date'].value,
             f['task-urgency'].value,
             f['task-priority'].value,
-            adjustmentResult.minutes,
+            rawEstimatedMinutes,
             f['task-description'].value
         ));
-        refreshAll();
-
-        await delay(1100);
+        
         taskModal.classList.add('hidden');
         f.reset();
-        clearTaskAdjustMessage();
+        refreshAll(true);
     });
 
     // Form: add event
     document.getElementById('event-form').addEventListener('submit', e => {
         e.preventDefault();
         const f = e.target;
+
+        const eventDate = f['event-date'].value; // "YYYY-MM-DD"
+        const startTimeStr = `${eventDate}T${f['event-start-time'].value}`; // "YYYY-MM-DDThh:mm"
+        const endTimeStr = `${eventDate}T${f['event-end-time'].value}`;
+
         events.push(new CalEvent(
             f['event-name'].value,
-            f['event-start-time'].value,
-            f['event-end-time'].value,
+            startTimeStr,
+            endTimeStr,
             f['event-location'].value,
             f['event-status'].value,
             f['event-category'].value,
             f['event-reminder-enabled'].value === 'yes',
             f['event-reminder-every-days'].value
         ));
-        refreshAll();
+        
         eventModal.classList.add('hidden');
         f.reset();
         f['event-reminder-enabled'].value = 'no';
         f['event-reminder-every-days'].value = '1';
         updateEventReminderVisibility();
+        refreshAll(true);
     });
 
     updateEventReminderVisibility();
@@ -247,83 +385,178 @@ function setupListeners() {
     });
 }
 
-async function adjustEstimatedMinutes(fallbackMinutes, taskPayload) {
-    try {
-        const response = await fetch(buildApiUrl('/api/task-time-adjust'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(taskPayload)
-        });
-
-        if (!response.ok) {
-            console.warn(`Time-adjust API failed (${response.status}). Using raw estimate: ${fallbackMinutes}m.`);
-            return { minutes: fallbackMinutes, usedFallback: true };
-        }
-
-        const adjustedTask = await response.json();
-        const adjusted = parseInt(adjustedTask?.estimatedTime, 10);
-        if (!Number.isFinite(adjusted) || adjusted <= 0) {
-            console.warn(`Time-adjust API returned invalid estimatedTime. Using raw estimate: ${fallbackMinutes}m.`);
-            return { minutes: fallbackMinutes, usedFallback: true };
-        }
-
-        return { minutes: adjusted, usedFallback: false };
-    } catch (error) {
-        console.warn(`Time-adjust API unavailable. Using raw estimate: ${fallbackMinutes}m.`, error);
-        return { minutes: fallbackMinutes, usedFallback: true };
-    }
-}
-
 function buildApiUrl(path) {
-    const onSpringOrigin =
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
-        window.location.port === '8080';
-
-    if (onSpringOrigin) return path;
-    return `http://localhost:8080${path}`;
-}
-
-function showTaskAdjustMessage(rawMinutes, adjustedMinutes, usedFallback) {
-    const msg = document.getElementById('task-adjust-message');
-    if (!msg) return;
-
-    msg.classList.remove('is-success', 'is-fallback');
-
-    if (usedFallback) {
-        msg.textContent = `Could not adjust time right now. Using ${rawMinutes} min.`;
-        msg.classList.add('is-fallback');
-        return;
-    }
-
-    if (adjustedMinutes !== rawMinutes) {
-        msg.textContent = `Adjusted by algorithm: ${rawMinutes} → ${adjustedMinutes} min.`;
-        msg.classList.add('is-success');
-        return;
-    }
-
-    msg.textContent = `No change needed. Keeping ${rawMinutes} min.`;
-}
-
-function clearTaskAdjustMessage() {
-    const msg = document.getElementById('task-adjust-message');
-    if (!msg) return;
-    msg.textContent = '';
-    msg.classList.remove('is-success', 'is-fallback');
+    // Because the Spring Boot backend is serving both our frontend UI and our API,
+    // we can simply return the relative path. The browser will automatically append 
+    // it to whatever domain the user is currently visiting (localhost, ngrok, or a real domain).
+    return path;
 }
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// ── Pomodoro Logic ─────────────────────────────────────────────────────────
+function checkActiveSession() {
+    const now = new Date();
+    // Find if the algorithm scheduled a task right now
+    const activeBlock = scheduledBlocks.find(b => now >= b.startTime && now <= b.endTime);
+    
+    const popup = document.getElementById('pomodoro-popup');
+    const pomoView = document.getElementById('pomodoro-view');
+    
+    if (activeBlock && pomoView.classList.contains('hidden')) {
+        // New session detected, show popup!
+        if (!currentPomoBlock || currentPomoBlock.id !== activeBlock.id) {
+            document.getElementById('pomo-popup-task').textContent = activeBlock.name;
+            popup.classList.remove('hidden');
+            // Auto-hide popup after 15s so it's not annoying
+            setTimeout(() => popup.classList.add('hidden'), 15000);
+            currentPomoBlock = activeBlock;
+        }
+    } else if (!activeBlock) {
+        popup.classList.add('hidden');
+        
+        // If they are in the full screen view and the scheduled time ran out, let them know
+        if (!pomoView.classList.contains('hidden') && currentPomoBlock) {
+            alert(`Your scheduled session for '${currentPomoBlock.name}' is over! Navigating back to calendar.`);
+            closePomodoro();
+        }
+        currentPomoBlock = null;
+    }
+}
+
+function openPomodoro() {
+    document.getElementById('pomodoro-popup').classList.add('hidden');
+    document.getElementById('pomodoro-view').classList.remove('hidden');
+    
+    // Force a fresh check in case they opened it manually
+    const now = new Date();
+    currentPomoBlock = scheduledBlocks.find(b => now >= b.startTime && now <= b.endTime);
+    
+    const title = document.getElementById('pomo-current-task');
+    const times = document.getElementById('pomo-session-times');
+    
+    if (currentPomoBlock) {
+        title.textContent = currentPomoBlock.name;
+        times.textContent = `Scheduled: ${fmtTime(currentPomoBlock.startTime)} – ${fmtTime(currentPomoBlock.endTime)}`;
+    } else {
+        title.textContent = 'Pomodoro Timer';
+        times.textContent = '';
+    }
+    
+    if (!pomoIsRunning && pomoTimeLeft === pomoWorkDuration * 60) {
+        updatePomoDisplay();
+    }
+}
+
+function closePomodoro() {
+    document.getElementById('pomodoro-view').classList.add('hidden');
+    pausePomodoro();
+}
+
+function startPomodoro() {
+    if (pomoIsRunning) return;
+    pomoIsRunning = true;
+    const btn = document.getElementById('pomo-start-pause-btn');
+    btn.textContent = 'Pause';
+    btn.classList.add('running');
+    
+    pomoInterval = setInterval(() => {
+        pomoTimeLeft--;
+        if (pomoTimeLeft <= 0) {
+            switchPomoPhase(!pomoIsWorking);
+        } else {
+            updatePomoDisplay();
+        }
+    }, 1000);
+}
+
+function pausePomodoro() {
+    pomoIsRunning = false;
+    clearInterval(pomoInterval);
+    const btn = document.getElementById('pomo-start-pause-btn');
+    btn.textContent = 'Resume';
+    btn.classList.remove('running');
+}
+
+function switchPomoPhase(toWork) {
+    pomoIsWorking = toWork;
+    pomoTimeLeft = (pomoIsWorking ? pomoWorkDuration : pomoBreakDuration) * 60;
+    
+    const label = document.getElementById('pomo-phase-label');
+    label.textContent = pomoIsWorking ? 'Work Time' : 'Break Time';
+    label.classList.toggle('break-mode', !pomoIsWorking);
+    updatePomoDisplay();
+}
+
+function updatePomoDisplay() {
+    const m = Math.floor(pomoTimeLeft / 60).toString().padStart(2, '0');
+    const s = (pomoTimeLeft % 60).toString().padStart(2, '0');
+    document.getElementById('pomo-timer-display').textContent = `${m}:${s}`;
+}
+
+function setPomodoroTheme(color) {
+    const view = document.getElementById('pomodoro-view');
+    Array.from(view.classList).forEach(c => {
+        if (c.startsWith('theme-')) view.classList.remove(c);
+    });
+    view.classList.add(`theme-${color}`);
+    
+    document.querySelectorAll('.pomo-color-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.color === color);
+    });
+}
+
+function setGlobalTheme(color) {
+    Array.from(document.body.classList).forEach(c => {
+        if (c.startsWith('theme-')) document.body.classList.remove(c);
+    });
+    if (color !== 'black') { document.body.classList.add(`theme-${color}`); }
+}
+
+// ── Schedule Integration ───────────────────────────────────────────────────
+async function fetchScheduledBlocks() {
+    try {
+        const response = await fetch(buildApiUrl(`/api/schedule?startHour=${START_HOUR}&endHour=${END_HOUR}`));
+        if (!response.ok) return;
+        
+        const scheduleData = await response.json();
+        
+        // Filter out the algorithm's split blocks and format them for the UI
+        scheduledBlocks = scheduleData
+            .filter(item => item.status === 'SCHEDULED_TASK')
+            .map(item => {
+                // Match with original task to inherit its completion status and category
+                const baseTaskName = item.name.replace(/\s*\(Session \d+\)$/, '');
+                const matchedTask = tasks.find(t => t.name === baseTaskName);
+                
+                return {
+                    type: 'scheduledBlock',
+                    name: item.name, // The backend already formats this as "[Task Name] (Session X)"
+                    startTime: new Date(item.startTime),
+                    endTime: new Date(item.endTime),
+                    category: item.category || (matchedTask ? matchedTask.category : 'other'),
+                    completed: matchedTask ? matchedTask.completed : false,
+                    matchedTask: matchedTask
+                };
+            });
+            
+        renderCalendar();
+        checkActiveSession();
+    } catch (err) {
+        console.warn('Failed to fetch schedule blocks:', err);
+    }
+}
+
 // ── Refresh ────────────────────────────────────────────────────────────────
-function refreshAll() {
+function refreshAll(fetchSchedule = false) {
     updateLabel();
     renderCalendar();
     const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab || 'tasks';
     renderTaskList(activeTab);
     updateStats();
-    saveState();
-    fetchScheduledBlocks();
+    saveState(fetchSchedule);
 }
 
 function updateLabel() {
@@ -397,9 +630,10 @@ function renderTimeGrid(numDays) {
         const d = new Date(currentDate);
         d.setDate(currentDate.getDate() + i);
         const isToday = d.toDateString() === today.toDateString();
+        const dIdx = d.getDay() === 0 ? 6 : d.getDay() - 1; // 0=Mon, 6=Sun
         header.innerHTML += `
             <div class="cal-day-header ${isToday ? 'today' : ''}">
-                <div class="cal-day-name">${DAYS[i]}</div>
+                <div class="cal-day-name">${DAYS[dIdx]}</div>
                 <div class="cal-day-date">${d.getDate()}</div>
             </div>`;
     }
@@ -452,8 +686,11 @@ function renderTimeGrid(numDays) {
     }
 
     // Place blocks
-    const weekEnd = new Date(currentDate);
-    weekEnd.setDate(currentDate.getDate() + numDays);
+    const gridStart = new Date(currentDate);
+    gridStart.setHours(0, 0, 0, 0);
+    
+    const gridEnd = new Date(gridStart);
+    gridEnd.setDate(gridStart.getDate() + numDays);
 
     const placeBlock = (item, colIdx, startFrac, endFrac, isTask) => {
         const col = document.getElementById(`day-col-${colIdx}`);
@@ -471,36 +708,43 @@ function renderTimeGrid(numDays) {
                 ? `${item.completed ? 'Completed · was due' : 'Due'} ${fmtTime(item.dueDate)}`
                 : `${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
         block.innerHTML = `<div class="block-title">${item.name}</div><div class="block-time">${timeStr}</div>`;
+        
+        let tooltip = item.name;
+        if (item.type === 'scheduledBlock') {
+            tooltip += `\nSession: ${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
+            if (item.matchedTask) {
+                tooltip += `\nDue: ${item.matchedTask.dueDate.toLocaleDateString()} at ${fmtTime(item.matchedTask.dueDate)}`;
+                if (item.matchedTask.description) tooltip += `\nNotes: ${item.matchedTask.description}`;
+            }
+        } else if (item.type === 'task') {
+            tooltip += `\nDue: ${item.dueDate.toLocaleDateString()} at ${fmtTime(item.dueDate)}`;
+            tooltip += `\nEst. Time: ${item.estimatedTime}m`;
+            if (item.description) tooltip += `\nNotes: ${item.description}`;
+        } else {
+            tooltip += `\nTime: ${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
+            if (item.location) tooltip += `\nLocation: ${item.location}`;
+        }
+        block.title = tooltip;
+        
         block.addEventListener('click', e => { e.stopPropagation(); showPopover(item, e); });
         col.appendChild(block);
     };
 
-    events.filter(ev => !ev.archived && ev.startTime >= currentDate && ev.startTime < weekEnd).forEach(ev => {
+    events.filter(ev => !ev.archived && ev.startTime >= gridStart && ev.startTime < gridEnd).forEach(ev => {
         const colIdx   = numDays === 1 ? 0 : dayIndex(ev.startTime);
         const startFrac = timeFrac(ev.startTime);
         const endFrac   = timeFrac(ev.endTime);
         placeBlock(ev, colIdx, startFrac, endFrac, false);
     });
 
-    if (scheduledBlocks.length > 0) {
-        scheduledBlocks
-            .filter(b => b.startTime >= currentDate && b.startTime < weekEnd)
-            .forEach(b => {
-                const colIdx    = numDays === 1 ? 0 : dayIndex(b.startTime);
-                const startFrac = timeFrac(b.startTime);
-                const endFrac   = timeFrac(b.endTime);
-                placeBlock(b, colIdx, startFrac, endFrac, true);
-            });
-    } else {
-        tasks
-            .filter(t => shouldShowTaskOnCalendar(t) && t.dueDate >= currentDate && t.dueDate < weekEnd)
-            .forEach(t => {
-                const colIdx    = numDays === 1 ? 0 : dayIndex(t.dueDate);
-                const startFrac = timeFrac(t.dueDate);
-                const endFrac   = startFrac + 0.5;
-                placeBlock(t, colIdx, startFrac, endFrac, true);
-            });
-    }
+    scheduledBlocks
+        .filter(b => b.startTime >= gridStart && b.startTime < gridEnd)
+        .forEach(b => {
+            const colIdx    = numDays === 1 ? 0 : dayIndex(b.startTime);
+            const startFrac = timeFrac(b.startTime);
+            const endFrac   = timeFrac(b.endTime);
+            placeBlock(b, colIdx, startFrac, endFrac, true);
+        });
 }
 
 function timeFrac(d) { return (d.getHours() - START_HOUR) + d.getMinutes() / 60; }
@@ -563,7 +807,7 @@ function renderMonthView() {
         const cellEnd   = new Date(cellDate); cellEnd.setHours(23,59,59,999);
 
         const dayEvents = events.filter(ev => !ev.archived && ev.startTime >= cellStart && ev.startTime <= cellEnd);
-        const dayTasks  = tasks.filter(t  => shouldShowTaskOnCalendar(t) && t.dueDate >= cellStart && t.dueDate <= cellEnd);
+        const dayTasks  = scheduledBlocks.filter(b => b.startTime >= cellStart && b.startTime <= cellEnd);
 
         const allItems = [...dayEvents, ...dayTasks];
         const MAX_SHOW = 3;
@@ -573,6 +817,23 @@ function renderMonthView() {
             pill.className = `month-event-pill ${catCls}${item.type === 'task' ? ' task-pill' : ''}`;
             if (item.type === 'task' && item.completed) pill.classList.add('completed-task-pill');
             pill.textContent = item.name;
+            
+            let tooltip = item.name;
+            if (item.type === 'scheduledBlock') {
+                tooltip += `\nSession: ${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
+                if (item.matchedTask) {
+                    tooltip += `\nDue: ${item.matchedTask.dueDate.toLocaleDateString()} at ${fmtTime(item.matchedTask.dueDate)}`;
+                    if (item.matchedTask.description) tooltip += `\nNotes: ${item.matchedTask.description}`;
+                }
+            } else if (item.type === 'task') {
+                tooltip += `\nDue: ${item.dueDate.toLocaleDateString()} at ${fmtTime(item.dueDate)}`;
+                if (item.description) tooltip += `\nNotes: ${item.description}`;
+            } else {
+                tooltip += `\nTime: ${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`;
+                if (item.location) tooltip += `\nLocation: ${item.location}`;
+            }
+            pill.title = tooltip;
+            
             pill.addEventListener('click', e => { e.stopPropagation(); showPopover(item, e); });
             cell.appendChild(pill);
         });
@@ -661,8 +922,16 @@ function getAllClearMessage() {
 
 function renderItem(item, container, isArchive) {
     const card = document.createElement('div');
+    let tooltip = item.name;
+    
     if (item.type === 'task') {
         const t = item;
+        
+        tooltip += `\nDue: ${t.dueDate.toLocaleDateString()} at ${fmtTime(t.dueDate)}`;
+        tooltip += `\nEst. Time: ${t.estimatedTime}m`;
+        if (t.description) tooltip += `\nNotes: ${t.description}`;
+        card.title = tooltip;
+        
         const score = t.getPriorityScore();
         let scoreColor = 'var(--accent)';
         if (score === Infinity) scoreColor = 'var(--accent-red)';
@@ -695,6 +964,11 @@ function renderItem(item, container, isArchive) {
 
     } else {
         const ev = item;
+        
+        tooltip += `\nTime: ${fmtTime(ev.startTime)} – ${fmtTime(ev.endTime)}`;
+        if (ev.location) tooltip += `\nLocation: ${ev.location}`;
+        card.title = tooltip;
+        
         card.className = 'event-card';
         card.style.position = 'relative';
         card.style.paddingLeft = '14px';
@@ -724,8 +998,15 @@ function showPopover(item, e) {
     const body    = document.getElementById('popover-body');
     const footer  = document.getElementById('popover-footer');
 
-    dot.style.background = catColor(item.category);
-    title.textContent    = item.name;
+    // Extract the parent task if this is a scheduled session block
+    const isSession = item.type === 'scheduledBlock' && item.matchedTask;
+    const targetItem = isSession ? item.matchedTask : item;
+
+    const now = new Date();
+    const isHappeningNow = isSession && (now >= item.startTime && now <= item.endTime);
+
+    dot.style.background = catColor(targetItem.category);
+    title.textContent    = item.name; // Keep the specific block name (e.g., Session 1)
     body.innerHTML       = '';
     footer.innerHTML     = '';
 
@@ -734,8 +1015,24 @@ function showPopover(item, e) {
         body.innerHTML += `<div class="popover-row"><span class="popover-icon">${icon}</span><span>${label}: <span class="popover-val">${val}</span></span></div>`;
     };
 
-    if (item.type === 'task') {
-        const t = item;
+    if (isSession) {
+        row('🕐', 'Session Time', `${fmtTime(item.startTime)} – ${fmtTime(item.endTime)}`);
+
+        if (isHappeningNow) {
+            const btnReschedule = btn('btn-reschedule', 'Reschedule', () => {
+                const pushEvent = new CalEvent("Busy / Rescheduled", new Date(), item.endTime, "", "FIXED", "other");
+                events.push(pushEvent);
+                pop.classList.add('hidden');
+                refreshAll(true);
+            });
+            btnReschedule.style.backgroundColor = 'var(--accent-orange)';
+            btnReschedule.style.color = '#fff';
+            footer.appendChild(btnReschedule);
+        }
+    }
+
+    if (targetItem.type === 'task') {
+        const t = targetItem;
         row('📅', 'Due',        t.dueDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
         row('⏰', 'Due time',   fmtTime(t.dueDate));
         row('🏷', 'Category',   capFirst(t.category));
@@ -784,7 +1081,7 @@ function showPopover(item, e) {
             footer.appendChild(btnDel);
         }
     } else {
-        const ev = item;
+        const ev = targetItem;
         row('📅', 'Date',     ev.startTime.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
         row('🕐', 'Time',     `${fmtTime(ev.startTime)} – ${fmtTime(ev.endTime)}`);
         row('⏱', 'Duration', `${ev.getDurationMins()} min`);
@@ -826,10 +1123,13 @@ function showPopover(item, e) {
 
     // Position popover near click
     pop.classList.remove('hidden');
-    const popW = 300, popH = 320;
+    
+    const rect = pop.getBoundingClientRect();
+    const popW = rect.width, popH = rect.height;
     let left = e.clientX + 12, top = e.clientY - 20;
     if (left + popW > window.innerWidth - 10)  left = e.clientX - popW - 12;
     if (top  + popH > window.innerHeight - 10) top  = window.innerHeight - popH - 10;
+    if (left < 10) left = 10;
     if (top < 10) top = 10;
     pop.style.left = `${left}px`;
     pop.style.top  = `${top}px`;
@@ -871,7 +1171,12 @@ function seedDemoData() {
     events.push(new CalEvent("Work Shift",      d(2, 16), d(2, 20),  "Office",          "FIXED",    "Work"));
 }
 
-function saveState() {
+function formatLocalISO(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+}
+
+function saveState(fetchSchedule = false) {
     try {
         const payload = {
             currentDate: currentDate.toISOString(),
@@ -880,7 +1185,7 @@ function saveState() {
                 id: t.id,
                 name: t.name,
                 category: t.category,
-                dueDate: t.dueDate.toISOString(),
+                dueDate: formatLocalISO(t.dueDate),
                 urgency: t.urgency,
                 userPriority: t.userPriority,
                 estimatedTime: t.estimatedTime,
@@ -893,8 +1198,8 @@ function saveState() {
             events: events.map(ev => ({
                 id: ev.id,
                 name: ev.name,
-                startTime: ev.startTime.toISOString(),
-                endTime: ev.endTime.toISOString(),
+                startTime: formatLocalISO(ev.startTime),
+                endTime: formatLocalISO(ev.endTime),
                 location: ev.location,
                 status: ev.status,
                 category: ev.category,
@@ -905,7 +1210,7 @@ function saveState() {
             }))
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-        queueCsvSync({ tasks: payload.tasks, events: payload.events });
+        queueCsvSync({ tasks: payload.tasks, events: payload.events }, fetchSchedule);
     } catch (err) {
         console.warn('Failed to save local state:', err);
     }
@@ -915,14 +1220,14 @@ function shouldShowTaskOnCalendar(task) {
     return !task.archived || task.completed;
 }
 
-function queueCsvSync(payload) {
+function queueCsvSync(payload, fetchSchedule) {
     if (csvSyncTimer) clearTimeout(csvSyncTimer);
     csvSyncTimer = setTimeout(() => {
-        syncStateToCsv(payload);
-    }, 900);
+        syncStateToCsv(payload, fetchSchedule);
+    }, 300);
 }
 
-async function syncStateToCsv(payload) {
+async function syncStateToCsv(payload, fetchSchedule) {
     try {
         const response = await fetch(buildApiUrl('/api/state/save-csv'), {
             method: 'POST',
@@ -931,6 +1236,10 @@ async function syncStateToCsv(payload) {
         });
         if (!response.ok) {
             console.warn(`CSV sync failed (${response.status}). Local storage is still saved.`);
+        } else {
+            if (fetchSchedule && typeof fetchScheduledBlocks === 'function') {
+                fetchScheduledBlocks();
+            }
         }
     } catch (error) {
         console.warn('CSV sync unavailable. Local storage is still saved.', error);
@@ -987,13 +1296,6 @@ function loadState() {
             event.archivedAt = ev.archivedAt || null;
             return event;
         });
-
-        if (parsed.currentDate) {
-            const restoredDate = new Date(parsed.currentDate);
-            if (!Number.isNaN(restoredDate.getTime())) {
-                currentDate = restoredDate;
-            }
-        }
 
         if (['week', 'month', 'day'].includes(parsed.currentView)) {
             currentView = parsed.currentView;

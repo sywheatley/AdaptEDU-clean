@@ -72,12 +72,21 @@ public class Scheduler {
      */
     public List<Event> generateSchedule(List<Event> fixedEvents,
             LocalDateTime scheduleStart, LocalDateTime scheduleEnd, String filePath) {
+        return generateSchedule(fixedEvents, scheduleStart, scheduleEnd, filePath, 8, 22);
+    }
+
+    public List<Event> generateSchedule(List<Event> fixedEvents,
+            LocalDateTime scheduleStart, LocalDateTime scheduleEnd, String filePath, int startH, int endH) {
 
         tasks.insertTaskList(filePath);
+        
+        // Filter out completed tasks so they don't invisibly block out your free time
+        tasks.getTasks().removeIf(Task::isCompleted);
+        
         tasks.sortByDueDate();
 
         // 1. Find all available time slots
-        List<TimeSlot> freeSlots = findFreeTimeSlots(fixedEvents, scheduleStart, scheduleEnd);
+        List<TimeSlot> freeSlots = findFreeTimeSlots(fixedEvents, scheduleStart, scheduleEnd, startH, endH);
 
         // 2. Prioritize tasks to schedule the most important ones first
 
@@ -101,31 +110,39 @@ public class Scheduler {
                 sessionInDay = 0;
             }
 
-            // Adjust estimated time for a more realistic duration using the procrastination
-            // model
-            // double remainingDuration =
-            // ProcrastinationAlgorithm.getRealisticTimeInMinutes(task.getEstimatedTime());
             int remainingDuration = task.getEstimatedTime();
             List<Event> taskSessions = new ArrayList<>();
 
             // Find slots for the task, splitting if necessary
-
+            boolean scheduledAny = false;
             for (TimeSlot slot : freeSlots) {
 
-                long slotDuration = slot.getDurationInMinutes();
-                // Makes sure it accounts for used up free slots
-                if (slotDuration <= 5) {
+                // Snap the slot start time to the next 15-minute boundary for clean blocks
+                LocalDateTime taskStart = slot.start;
+                int startMod = taskStart.getMinute() % 15;
+                if (startMod != 0) {
+                    taskStart = taskStart.plusMinutes(15 - startMod);
+                }
+
+                long slotDuration = Duration.between(taskStart, slot.end).toMinutes();
+                // Require at least 15 minutes of free time to schedule a chunk
+                if (slotDuration < 15) {
                     continue;
                 }
+                scheduledAny = true;
                 // Take as much time as possible from the current slot
                 int timeToTake = (int) Math.min(task.getMaxSessionLength(), Math.min(slotDuration, remainingDuration));
 
-                LocalDateTime taskStart = slot.start;
+                // Lock chunks into 15-minute increments unless it's the final tiny piece
+                if (timeToTake >= 15) {
+                    timeToTake = (timeToTake / 15) * 15;
+                }
+
                 LocalDateTime taskEnd = taskStart.plusMinutes(timeToTake);
                 sessionInDay++;
                 // Create a new Event to represent the scheduled task session
 
-                if (taskEnd.getHour() > 21)
+                if (taskEnd.getHour() >= endH)
                     sessionInDay = 0;
 
                 Event taskEvent = new Event(
@@ -147,7 +164,7 @@ public class Scheduler {
                 // Update the free slot by moving its start time forward
                 slot.start = taskEnd;
                 remainingDuration -= timeToTake;
-                if (remainingDuration > 0.1 & !task.getCategory().equals("BREAK")) {
+                if (remainingDuration > 0.1 && !task.getCategory().equals("BREAK")) {
                     task.setSession(task.getSession() + 1);
                     task.setEstimatedTime(remainingDuration);
                     tasks.addTask(task);
@@ -161,6 +178,10 @@ public class Scheduler {
 
             }
 
+            if (!scheduledAny) {
+                remainingTimes.put(task, (double) remainingDuration);
+                tasks.removeTask(task);
+            }
             scheduledTaskEvents.addAll(taskSessions);
         }
 
@@ -183,7 +204,7 @@ public class Scheduler {
      * Identifies blocks of free time between a given start and end time, avoiding a
      * list of busy events.
      */
-    private List<TimeSlot> findFreeTimeSlots(List<Event> events, LocalDateTime windowStart, LocalDateTime windowEnd) {
+    private List<TimeSlot> findFreeTimeSlots(List<Event> events, LocalDateTime windowStart, LocalDateTime windowEnd, int startH, int endH) {
         List<TimeSlot> freeSlots = new ArrayList<>();
 
         // Filter events to be within our scheduling window and sort them
@@ -193,60 +214,52 @@ public class Scheduler {
                 .filter(e -> e.getStartTime() != null && e.getEndTime() != null)
                 .collect(Collectors.toList());
 
-        LocalDateTime currentTime = LocalDateTime.now().plusDays(1).withHour(8);
+        LocalDateTime currentTime = windowStart;
         sortedEvents.sort((t1, t2) -> t1.getStartTime().compareTo(t2.getStartTime()));
 
         for (Event event : sortedEvents) {
 
             while (currentTime.isBefore(event.getEndTime())) {
-                LocalDateTime setTimeWindow = currentTime.withHour(windowEnd.getHour());
+                LocalDateTime setTimeWindow = currentTime.withHour(endH).withMinute(0);
                 LocalDateTime setTimeEvent = event.getStartTime();
                 LocalDateTime finalTime = event.getEndTime();
-                if (setTimeEvent.getHour() < windowStart.getHour()) {
-                    setTimeEvent = setTimeEvent.minusDays(1).withHour(windowEnd.getHour());
-                } else if (setTimeEvent.getHour() > windowEnd.getHour()) {
-                    setTimeEvent = setTimeEvent.withHour(windowEnd.getHour());
+                if (setTimeEvent.getHour() < startH) {
+                    setTimeEvent = setTimeEvent.minusDays(1).withHour(endH).withMinute(0);
+                } else if (setTimeEvent.getHour() >= endH) {
+                    setTimeEvent = setTimeEvent.withHour(endH).withMinute(0);
                 }
-                if (finalTime.getHour() < windowStart.getHour()) {
-                    finalTime = finalTime.withHour(windowStart.getHour());
-                } else if (finalTime.getHour() > windowEnd.getHour()) {
-                    finalTime = finalTime.plusDays(1).withHour(windowStart.getHour());
+                if (finalTime.getHour() < startH) {
+                    finalTime = finalTime.withHour(startH).withMinute(0);
+                } else if (finalTime.getHour() >= endH) {
+                    finalTime = finalTime.plusDays(1).withHour(startH).withMinute(0);
                 }
                 if (setTimeWindow.isBefore(setTimeEvent)) {
                     freeSlots.add(new TimeSlot(currentTime, setTimeWindow));
-                    System.out
-                            .println("Freeslot: " + event.getName() + " --- " + currentTime + " --- " + setTimeWindow);
-                    currentTime = currentTime.plusDays(1).withHour(windowStart.getHour());
+                    currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0);
                     if (currentTime.isAfter(event.getStartTime())) {
                         currentTime = finalTime;
                     }
                 } else {
                     freeSlots.add(new TimeSlot(currentTime, setTimeEvent));
-                    System.out.println("Freeslot: " + event.getName() + " --- " + currentTime + " --- " + setTimeEvent);
                     currentTime = finalTime;
                 }
             }
         }
 
-        System.out.println("Final Free: " + currentTime + " --- " + windowEnd);
-
-        // Add a final 7 free slots
-        if (currentTime.getHour() < windowEnd.getHour()) {
-            freeSlots.add(new TimeSlot(currentTime, windowEnd));
-            System.out.println("Freeslot 1: " + currentTime + " --- " + windowEnd);
+        if (currentTime.getHour() < endH) {
+            freeSlots.add(new TimeSlot(currentTime, currentTime.withHour(endH).withMinute(0)));
         }
-        currentTime = currentTime.plusHours(windowEnd.getHour() - currentTime.getHour() + 10);
+        
+        currentTime = currentTime.plusDays(1).withHour(startH).withMinute(0);
         for (int i = 1; i <= 70; i++) {
-            // System.out.println("Current Time: " + currentTime);
-            currentTime = currentTime.plusHours(24);
-            freeSlots.add(new TimeSlot(currentTime, currentTime.plusHours(14)));
-            System.out.println("Freeslot: " + currentTime + " --- " + currentTime.plusHours(14));
+            freeSlots.add(new TimeSlot(currentTime, currentTime.withHour(endH).withMinute(0)));
+            currentTime = currentTime.plusDays(1);
         }
 
         return freeSlots;
     }
 
-    private static List<Event> loadEventsFromCSV(String filePath) {
+    public static List<Event> loadEventsFromCSV(String filePath) {
         List<Event> loadedEvents = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line = br.readLine(); // Skip header
@@ -285,7 +298,7 @@ public class Scheduler {
         Scheduler scheduler = new Scheduler();
 
         // --- 1. Load Data From CSV ---
-        List<Event> fixedEvents = loadEventsFromCSV("Main_Algorithm/events.csv");
+        List<Event> fixedEvents = loadEventsFromCSV("src/main/java/procrastination_alg/events.csv");
         // --- 2. Define the scheduling window ---
         // The test data in the CSV spans from May 19 to May 25, 2024.
         // We test the schedule for a specific day from the dataset (e.g., Monday, May
@@ -297,7 +310,7 @@ public class Scheduler {
         // --- 3. Generate and print the schedule ---
         System.out.println("Generating Schedule for " + testDate + "...\n");
         List<Event> fullSchedule = scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd,
-                "Main_Algorithm/tasks.csv");
+                "src/main/java/procrastination_alg/tasks.csv");
 
         System.out.println("--- Final Daily Schedule ---");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
@@ -330,7 +343,7 @@ public class Scheduler {
             if (index > 0) {
                 if (/* e.getStartTime().isBefore(fullSchedule.get(index - 1).getEndTime()) */ e.getStartTime()
                         .getDayOfYear() <= fullSchedule.get(index - 1).getEndTime().getDayOfYear()
-                        & e.getStartTime().getHour() < fullSchedule.get(index - 1).getEndTime().getHour()) {
+                        && e.getStartTime().getHour() < fullSchedule.get(index - 1).getEndTime().getHour()) {
                     if (e.getStatus().equals("SCHEDULED_TASK")
                             || fullSchedule.get(index - 1).getStatus().equals("SCHEDULED_TASK")) {
                         overlap = true;

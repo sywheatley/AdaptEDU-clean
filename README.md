@@ -1,5 +1,27 @@
 # AdaptEDU
 
+## Docker
+
+Build the app image:
+
+```sh
+docker build -t adaptedu:local .
+```
+
+Run the app:
+
+```sh
+docker run --rm -p 8080:8080 adaptedu:local
+```
+
+Or use Docker Compose:
+
+```sh
+docker compose up --build
+```
+
+The app is served on `http://localhost:8080`.
+
 
 
 ## Resources Used

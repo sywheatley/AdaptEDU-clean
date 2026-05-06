@@ -7,6 +7,8 @@ import java.util.List;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 
 @RestController
@@ -14,8 +16,9 @@ import java.time.LocalDateTime;
 @CrossOrigin(origins = "*") // Allows the frontend to communicate with the backend
 public class ScheduleController {
 
-    private static final String EVENTS_CSV = "src/main/java/procrastination_alg/events.csv";
-    private static final String TASKS_CSV = "src/main/java/procrastination_alg/tasks.csv";
+    private static final Path DATA_DIR = Path.of(System.getenv().getOrDefault("ADAPTEDU_DATA_DIR", "/tmp/adaptedu"));
+    private static final Path EVENTS_CSV = DATA_DIR.resolve("events.csv");
+    private static final Path TASKS_CSV = DATA_DIR.resolve("tasks.csv");
 
     /**
      * Endpoint to receive state sync from the frontend UI.
@@ -59,7 +62,7 @@ public class ScheduleController {
         Scheduler scheduler = new Scheduler();
         
         // Load the fixed events directly from the fresh CSV storage
-        List<Event> fixedEvents = Scheduler.loadEventsFromCSV(EVENTS_CSV);
+        List<Event> fixedEvents = Scheduler.loadEventsFromCSV(EVENTS_CSV.toString());
         
         // Setup a dynamic scheduling window starting from now (rounded to nearest 15 mins)
         LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
@@ -74,13 +77,14 @@ public class ScheduleController {
         LocalDateTime scheduleEnd = scheduleStart.withHour(endHour).withMinute(0);
         
         // Run the algorithm
-        return scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd, TASKS_CSV, startHour, endHour);
+        return scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd, TASKS_CSV.toString(), startHour, endHour);
     }
 
     // --- CSV Writing Helpers ---
     
-    private void writeEventsToCsv(List<Map<String, Object>> events, String filePath) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+    private void writeEventsToCsv(List<Map<String, Object>> events, Path filePath) throws IOException {
+        Files.createDirectories(filePath.getParent());
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath.toFile()))) {
             writer.println("name,startTime,endTime,duration,location,travelTime,status,category,description");
             for (Map<String, Object> e : events) {
                 String name = parseString(e.get("name"));
@@ -99,8 +103,9 @@ public class ScheduleController {
         }
     }
     
-    private void writeTasksToCsv(List<Map<String, Object>> tasks, String filePath) throws IOException {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+    private void writeTasksToCsv(List<Map<String, Object>> tasks, Path filePath) throws IOException {
+        Files.createDirectories(filePath.getParent());
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath.toFile()))) {
             writer.println("name,category,dueDate,userPriority,estimatedTime,completed,maxSessionLength,description");
             for (Map<String, Object> t : tasks) {
                 String name = parseString(t.get("name"));

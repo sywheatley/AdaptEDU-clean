@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adaptedu-cache-v1';
+const CACHE_NAME = 'adaptedu-cache-v2';
 
 // Add the core files of your web app here
 const urlsToCache = [
@@ -15,6 +15,17 @@ self.addEventListener('install', event => {
             .then(cache => {
                 return cache.addAll(urlsToCache);
             })
+    );
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys()
+            .then(names => Promise.all(
+                names.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+            ))
+            .then(() => self.clients.claim())
     );
 });
 

@@ -108,7 +108,7 @@ public class AdaptEDUController {
         }).collect(Collectors.toList());
     }
 
-    @PostMapping("/state/save-csv")
+    @PostMapping("/state/save-csv-v2") // Renamed to prevent conflict with ScheduleController
     public Map<String, Object> saveStateCsv(@RequestBody CsvSyncRequest request) throws IOException {
         List<TaskDTO> tasks = request.tasks == null ? List.of() : request.tasks;
         List<EventDTO> events = request.events == null ? List.of() : request.events;

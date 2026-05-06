@@ -44,9 +44,10 @@ public class ProcrastinationAlgorithm {
         // Convert the realistic time back to minutes.
         double realisticTimeInMinutes = realisticTimeInHours * 60.0;
 
-        // As a sanity check, ensure the adjusted time is not less than the original
-        // estimate.
-        return Math.max(estimatedTimeInMinutes, realisticTimeInMinutes);
+        // Ensure time is not less than original, and round up to the nearest 15 minutes
+        // This keeps the scheduling chunks cleanly aligned to the quarter-hour.
+        double finalMinutes = Math.max(estimatedTimeInMinutes, realisticTimeInMinutes);
+        return Math.ceil(finalMinutes / 15.0) * 15.0;
     }
 
     public static void main(String[] args) {

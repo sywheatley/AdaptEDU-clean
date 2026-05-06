@@ -30,7 +30,7 @@ public class TaskManager {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line = br.readLine(); // Skip header
             while ((line = br.readLine()) != null) {
-                String[] values = line.split(",", -1);
+                String[] values = parseCsvLine(line);
                 if (values.length >= 8) {
                     try {
                         loadedTasks.add(new Task(
@@ -52,6 +52,30 @@ public class TaskManager {
             System.err.println("Warning: Could not load tasks from " + filePath + " (" + e.getMessage() + ")");
         }
         return loadedTasks;
+    }
+
+    public static String[] parseCsvLine(String line) {
+        List<String> result = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '\"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '\"') {
+                    current.append('\"');
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c == ',' && !inQuotes) {
+                result.add(current.toString());
+                current.setLength(0);
+            } else {
+                current.append(c);
+            }
+        }
+        result.add(current.toString());
+        return result.toArray(new String[0]);
     }
 
     // Task methods

@@ -114,13 +114,35 @@ public class Scheduler {
 
                 long slotDuration = slot.getDurationInMinutes();
                 // Makes sure it accounts for used up free slots
-                if (slotDuration <= 5) {
+                if (slotDuration <= 0) {
+                    continue;
+                }
+                if (task.getMaxSessionLength() == -1 && slotDuration < remainingDuration) {
                     continue;
                 }
                 // Take as much time as possible from the current slot
-                int timeToTake = (int) Math.min(task.getMaxSessionLength(), Math.min(slotDuration, remainingDuration));
-
                 LocalDateTime taskStart = slot.start;
+                if (scheduledTaskEvents.size() > 0) {
+                    System.out.println("Start of new: " + taskStart);
+                    System.out.println(
+                            "End of old: " + scheduledTaskEvents.get(scheduledTaskEvents.size() - 1).getEndTime());
+                    System.out.println("Name of new: " + task.getName());
+                    System.out.println(
+                            "Name of old: " + scheduledTaskEvents.get(scheduledTaskEvents.size() - 1).getName());
+                    if (taskStart.isEqual(scheduledTaskEvents.get(scheduledTaskEvents.size() - 1).getEndTime())
+                            && task.getName()
+                                    .equals(scheduledTaskEvents.get(scheduledTaskEvents.size() - 1).getName())) {
+                        System.out.println("Break 10 scheduled");
+                        task = new Task("Break 10", "BREAK", LocalDateTime.MAX, 0, 10, false, 10, "Break");
+                        sessionInDay = 0;
+                    }
+                }
+                int timeToTake;
+                if (task.getMaxSessionLength() == -1)
+                    timeToTake = remainingDuration;
+                else
+                    timeToTake = (int) Math.min(task.getMaxSessionLength(), Math.min(slotDuration, remainingDuration));
+
                 LocalDateTime taskEnd = taskStart.plusMinutes(timeToTake);
                 sessionInDay++;
                 // Create a new Event to represent the scheduled task session
@@ -129,7 +151,7 @@ public class Scheduler {
                     sessionInDay = 0;
 
                 Event taskEvent = new Event(
-                        task.getName() + " (Session " + task.getSession() + ")",
+                        task.getName(),
                         taskStart, // The 'Date' field in Event is a bit redundant, but we use start time
                         taskStart,
                         taskEnd,
@@ -137,6 +159,7 @@ public class Scheduler {
                         task.getPriorityScore());
                 taskEvent.setStatus("SCHEDULED_TASK");
                 taskEvent.setDescription("Scheduled block for task: " + task.getName());
+                taskEvent.setSession(task.getSession());
                 if (task.getCategory() != null) {
                     taskEvent.setCategory(task.getCategory());
                 }
@@ -147,7 +170,7 @@ public class Scheduler {
                 // Update the free slot by moving its start time forward
                 slot.start = taskEnd;
                 remainingDuration -= timeToTake;
-                if (remainingDuration > 0.1 & !task.getCategory().equals("BREAK")) {
+                if (remainingDuration > 0.1 && !task.getCategory().equals("BREAK")) {
                     task.setSession(task.getSession() + 1);
                     task.setEstimatedTime(remainingDuration);
                     tasks.addTask(task);
@@ -197,6 +220,7 @@ public class Scheduler {
         sortedEvents.sort((t1, t2) -> t1.getStartTime().compareTo(t2.getStartTime()));
 
         for (Event event : sortedEvents) {
+            System.out.println("event: " + event + " ; " + currentTime);
 
             while (currentTime.isBefore(event.getEndTime())) {
                 LocalDateTime setTimeWindow = currentTime.withHour(windowEnd.getHour());
@@ -228,12 +252,10 @@ public class Scheduler {
             }
         }
 
-        System.out.println("Final Free: " + currentTime + " --- " + windowEnd);
-
         // Add a final 7 free slots
         if (currentTime.getHour() < windowEnd.getHour()) {
-            freeSlots.add(new TimeSlot(currentTime, windowEnd));
-            System.out.println("Freeslot 1: " + currentTime + " --- " + windowEnd);
+            freeSlots.add(new TimeSlot(currentTime, currentTime.withHour(windowEnd.getHour())));
+            System.out.println("Freeslot 1: " + currentTime + " --- " + currentTime.withHour(windowEnd.getHour()));
         }
         currentTime = currentTime.plusHours(windowEnd.getHour() - currentTime.getHour() + 10);
         for (int i = 1; i <= 70; i++) {
@@ -246,7 +268,7 @@ public class Scheduler {
         return freeSlots;
     }
 
-    private static List<Event> loadEventsFromCSV(String filePath) {
+    public static List<Event> loadEventsFromCSV(String filePath) {
         List<Event> loadedEvents = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line = br.readLine(); // Skip header
@@ -285,7 +307,7 @@ public class Scheduler {
         Scheduler scheduler = new Scheduler();
 
         // --- 1. Load Data From CSV ---
-        List<Event> fixedEvents = loadEventsFromCSV("Main_Algorithm/events.csv");
+        List<Event> fixedEvents = loadEventsFromCSV("src/main/java/procrastination_alg/events.csv");
         // --- 2. Define the scheduling window ---
         // The test data in the CSV spans from May 19 to May 25, 2024.
         // We test the schedule for a specific day from the dataset (e.g., Monday, May
@@ -297,7 +319,7 @@ public class Scheduler {
         // --- 3. Generate and print the schedule ---
         System.out.println("Generating Schedule for " + testDate + "...\n");
         List<Event> fullSchedule = scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd,
-                "Main_Algorithm/tasks.csv");
+                "src/main/java/procrastination_alg/tasks.csv");
 
         System.out.println("--- Final Daily Schedule ---");
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
@@ -323,8 +345,9 @@ public class Scheduler {
                 type = "SCHEDULED_TASK";
             }
 
-            System.out.printf("[%s] %s to %s - %s %s%s\n",
+            System.out.printf("[%s] %s to %s - %s (Session %s) %s%s\n",
                     type, e.getStartTime().format(timeFormatter), e.getEndTime().format(timeFormatter), e.getName(),
+                    e.getSession(),
                     e.getPriorityScore(),
                     extraInfo);
             if (index > 0) {

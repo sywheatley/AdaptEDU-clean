@@ -6,25 +6,42 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Tracks event data.
+ */
 public class Event {
 
-    private String id; // unique identifier for the event
+    private String id; // unique identifier for the event (Unused)
     private String name; // name of event
-    private LocalDateTime date; // date of the event
+    private LocalDateTime date; // date of the event (Unused)
     private LocalDateTime startTime; // the start time of the event
     private LocalDateTime endTime; // the end time of the event
     private LocalDateTime dueDate; // the due date of the event, only if the event is an assignment
-    private int duration; // duration of the event, in minutes.
-    private String location; // location of the event
-    private int travelTime; // travel time for the event
+    private int duration; // duration of the event, in minutes. (Unused)
+    private String location; // location of the event (Unused)
+    private int travelTime; // travel time for the event (Unused)
     private String status; // shows if this is a block that cannot move or if it is an optional event
+                           // (Unused)
     private String description; // description or notes about the event
     private String category; // category or color for visual organization
     private List<Integer> reminderMinutes; // reminder times in minutes before event
     private String recurrence; // recurrence pattern (NONE, DAILY, WEEKLY, MONTHLY)
-    private int session;
+    private int session; // Tracks the session number of the event, used when translating tasks to
+                         // events.
     private double priorityScore; // priority score for incoming tasks
 
+    /**
+     * Constructs an event
+     * 
+     * @param name       The name of the event
+     * @param date       The date associated with the event
+     * @param startTime  The starting time and date of the event
+     * @param endTime    The ending time and date of the event
+     * @param duration   The duration of the event
+     * @param location   A string representing the location of the event
+     * @param travelTime The travel time for the event
+     * @param status     The movable status of the event
+     */
     public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, int duration,
             String location, int travelTime, String status) {
         this.id = UUID.randomUUID().toString();
@@ -43,6 +60,19 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
+    /**
+     * Constructs an event
+     * 
+     * @param name       The name of the event
+     * @param date       The date associated with the event
+     * @param startTime  The starting time and date of the event
+     * @param endTime    The ending time and date of the event
+     * @param dueDate    The due date of the event, for task-event conversion.
+     * @param duration   The duration of the event
+     * @param location   A string representing the location of the event
+     * @param travelTime The travel time for the event
+     * @param status     The movable status of the event
+     */
     public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
             int duration,
             String location, int travelTime, String status) {
@@ -62,6 +92,20 @@ public class Event {
         this.dueDate = dueDate;
     }
 
+    /**
+     * Constructs an event
+     * 
+     * @param name          The name of the event
+     * @param date          The date associated with the event
+     * @param startTime     The starting time and date of the event
+     * @param endTime       The ending time and date of the event
+     * @param duration      The duration of the event
+     * @param location      A string representing the location of the event
+     * @param travelTime    The travel time for the event
+     * @param status        The movable status of the event
+     * @param priorityScore The priority score assosciated with the event, used for
+     *                      task-event conversion.
+     */
     public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, int duration,
             String location, int travelTime, String status, double priorityScore) {
         this.id = UUID.randomUUID().toString();
@@ -80,7 +124,12 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
-    // Constructor for event with only name and date (all day event)
+    /**
+     * Constructor for event with only name and date (all day event)
+     * 
+     * @param name The name of the event
+     * @param date The date associated with the event
+     */
     public Event(String name, LocalDateTime date) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
@@ -92,7 +141,14 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
-    // Constructor for event with name, date, and start and end time
+    /**
+     * Constructor for event with name, date, and start and end time
+     * 
+     * @param name      The name of the event
+     * @param date      The date associated with the event
+     * @param startTime The starting time and date of the event
+     * @param endTime   The ending time and date of the event
+     */
     public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
@@ -106,6 +162,16 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
+    /**
+     * Constructs an event.
+     * 
+     * @param name          The name of the event
+     * @param date          The date associated with the event
+     * @param startTime     The starting time and date of the event
+     * @param endTime       The ending time and date of the event
+     * @param priorityScore The priority score assosciated with the event, used for
+     *                      task-event conversion.
+     */
     public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime,
             double priorityScore) {
         this.id = UUID.randomUUID().toString();
@@ -120,6 +186,17 @@ public class Event {
         dueDate = LocalDateTime.MAX;
     }
 
+    /**
+     * Constructs an event.
+     * 
+     * @param name          The name of the event
+     * @param date          The date associated with the event
+     * @param startTime     The starting time and date of the event
+     * @param endTime       The ending time and date of the event
+     * @param dueDate       The due date of the event, for task-event conversion.
+     * @param priorityScore The priority score assosciated with the event, used for
+     *                      task-event conversion.
+     */
     public Event(String name, LocalDateTime date, LocalDateTime startTime, LocalDateTime endTime, LocalDateTime dueDate,
             double priorityScore) {
         this.id = UUID.randomUUID().toString();
@@ -134,7 +211,13 @@ public class Event {
         this.dueDate = dueDate;
     }
 
-    // Constructor for event with name, date, and duration
+    /**
+     * Constructor for event with name, date, and duration
+     * 
+     * @param name     The name of the event
+     * @param date     The date associated with the event
+     * @param duration The duration of the event
+     */
     public Event(String name, LocalDateTime date, int duration) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
@@ -148,10 +231,20 @@ public class Event {
     }
 
     // Getters and Setters for event attributes
+    /**
+     * Returns the due date of the event.
+     * 
+     * @return The due date, as a LocalDateTime
+     */
     public LocalDateTime getDueDate() {
         return dueDate;
     }
 
+    /**
+     * Returns the priority score
+     * 
+     * @return
+     */
     public double getPriorityScore() {
         return priorityScore;
     }

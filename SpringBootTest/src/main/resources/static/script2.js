@@ -1,7 +1,23 @@
-// AdaptEDU – Rebuilt Script
-// Features: week/month/day views · click-to-open detail popover
-//           archive (manual archive via popover)
-//           distinct category colors · Apple Calendar UX
+/**
+ * AdaptEDU — Main UI script
+ *
+ * Purpose: Implements the front-end UI interactions for the AdaptEDU
+ * - calendar views (week/month/day)
+ * - task/event creation
+ * - fields 
+ * - the Pomodoro 
+ * - calls to the backend API endpoints under `/api/*`.
+ *
+ *   This file contains only UI and user-side logic. This should not be
+ *   modified to change scheduling behavior!!!!!!!!
+ *
+ * Files referenced by this script:
+ * - `index2.html`  (HTML layout and element IDs)
+ * - `styles2.css`  (visual styles and color tokens)
+ * - `/api/*`       (backend endpoints: schedule, task-time-adjust, state/save-csv)
+ *
+ */
+
 
 class Task {
     constructor(name, category, dueDate, urgency, userPriority, estimatedTime, description = '', completed = false) {
@@ -48,7 +64,7 @@ class CalEvent {
     getDurationMins() { return (this.endTime - this.startTime) / 60000; }
 }
 
-// ── State ──────────────────────────────────────────────────────────────────
+// State 
 let currentDate = new Date();          // anchor date for all views
 let currentView = 'week';              // 'week' | 'month' | 'day'
 let tasks  = [];
@@ -62,7 +78,7 @@ let csvSyncTimer = null;
 let lastAllClearMessageIndex = -1;
 let sessionCheckInterval = null;
 
-// ── Pomodoro State ──
+//  Pomodoro State 
 let pomoInterval = null;
 let pomoTimeLeft = 25 * 60;
 let pomoIsWorking = true;
@@ -71,7 +87,7 @@ let pomoWorkDuration = 25;
 let pomoBreakDuration = 5;
 let currentPomoBlock = null;
 
-// ── Category colors (must match CSS) ──────────────────────────────────────
+//  Category colors (CSS) 
 const CAT_COLORS = {
     school:          '#82b1ff',
     work:            '#a5d6a7',
@@ -82,7 +98,7 @@ const CAT_COLORS = {
 };
 function catColor(cat) { return CAT_COLORS[cat] || CAT_COLORS.other; }
 
-// ── Init ───────────────────────────────────────────────────────────────────
+//  Init and Event Listeners 
 document.addEventListener('DOMContentLoaded', () => {
     const savedSettings = JSON.parse(localStorage.getItem('adaptedu.settings') || '{}');
     if (savedSettings.theme) globalTheme = savedSettings.theme;
@@ -101,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
-    // Auto-switch to Day view on mobile for better UX
+    // Auto-switch to Day view on mobile 
     if (window.innerWidth <= 768 && currentView !== 'day') {
         currentView = 'day';
         document.querySelectorAll('.view-btn').forEach(b => {
@@ -116,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sessionCheckInterval) clearInterval(sessionCheckInterval);
     sessionCheckInterval = setInterval(checkActiveSession, 10000);
 
-    // Register Service Worker for PWA
+    // Register 'Service Worker' for PWA (PWA - Progressive Web App)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/service-worker.js')
             .then(reg => console.log('Service Worker registered', reg))
@@ -124,6 +140,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+/**
+ * snapToMonday
+ *
+ * Ensure the provided Date object `d` is moved to the Monday of the same
+ * week. 
+ * 
+ * The calendar UI uses a Monday-anchored week view this helper keeps
+ * the anchor logic centralized and avoids duplicating date math.
+ *
+ * @param {Date} d - Date object to mutate (in-place)
+ */
 function snapToMonday(d) {
     const day = d.getDay();
     const diff = day === 0 ? -6 : 1 - day;
@@ -131,7 +158,14 @@ function snapToMonday(d) {
     d.setHours(0, 0, 0, 0);
 }
 
-// ── Event Listeners ────────────────────────────────────────────────────────
+//  Event Listeners 
+/**
+ * setupListeners
+ *
+ * Includes navigation controls (prev/next/today), view toggles, modal open/close handlers,
+ * form submit listeners, and various UI-specific interactions (mobile
+ * toggles, pomodoro buttons, settings). 
+ */
 function setupListeners() {
     // Mobile Panel Toggles
     const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
@@ -387,16 +421,18 @@ function setupListeners() {
 
 function buildApiUrl(path) {
     // Because the Spring Boot backend is serving both our frontend UI and our API,
-    // we can simply return the relative path. The browser will automatically append 
-    // it to whatever domain the user is currently visiting (localhost, ngrok, or a real domain).
+    // just return the relative path. 
     return path;
 }
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-// ── Pomodoro Logic ─────────────────────────────────────────────────────────
+/**
+ * checkActiveSession
+ *
+ * Periodically checks whether a Pomodoro session is currently active. 
+ */
 function checkActiveSession() {
     const now = new Date();
     // Find if the algorithm scheduled a task right now
@@ -455,6 +491,11 @@ function closePomodoro() {
     pausePomodoro();
 }
 
+/**
+ * startPomodoro
+ *
+ * Begins the Pomodoro timer loop. 
+ */
 function startPomodoro() {
     if (pomoIsRunning) return;
     pomoIsRunning = true;
@@ -472,6 +513,11 @@ function startPomodoro() {
     }, 1000);
 }
 
+/**
+ * pausePomodoro
+ *
+ * Pause the running Pomodoro interval and update the control button state.
+ */
 function pausePomodoro() {
     pomoIsRunning = false;
     clearInterval(pomoInterval);
@@ -480,6 +526,13 @@ function pausePomodoro() {
     btn.classList.remove('running');
 }
 
+/**
+ * switchPomoPhase
+ *
+ * Switch between work and break phases.  
+ *
+ * @param {boolean} toWork - true to set the phase to work, false for break
+ */
 function switchPomoPhase(toWork) {
     pomoIsWorking = toWork;
     pomoTimeLeft = (pomoIsWorking ? pomoWorkDuration : pomoBreakDuration) * 60;
@@ -515,7 +568,7 @@ function setGlobalTheme(color) {
     if (color !== 'black') { document.body.classList.add(`theme-${color}`); }
 }
 
-// ── Schedule Integration ───────────────────────────────────────────────────
+//  Schedule Integration 
 async function fetchScheduledBlocks() {
     try {
         const response = await fetch(buildApiUrl(`/api/schedule?startHour=${START_HOUR}&endHour=${END_HOUR}`));
@@ -533,7 +586,7 @@ async function fetchScheduledBlocks() {
                 
                 return {
                     type: 'scheduledBlock',
-                    name: item.name, // The backend already formats this as "[Task Name] (Session X)"
+                    name: item.name, // The backend already formats this as "[Task Name] (Session #)"
                     startTime: new Date(item.startTime),
                     endTime: new Date(item.endTime),
                     category: item.category || (matchedTask ? matchedTask.category : 'other'),
@@ -549,7 +602,14 @@ async function fetchScheduledBlocks() {
     }
 }
 
-// ── Refresh ────────────────────────────────────────────────────────────────
+//  Refresh 
+/**
+ * refreshAll
+ *
+ * Re-render the entire UI. 
+ *
+ * @param {boolean} fetchSchedule - whether to fetch a new schedule from server
+ */
 function refreshAll(fetchSchedule = false) {
     updateLabel();
     renderCalendar();
@@ -603,15 +663,23 @@ function updateStats() {
     });
 }
 
-// ══════════════════════════════════════════
+
 // CALENDAR RENDERING
-// ══════════════════════════════════════════
+
+/**
+ * renderCalendar
+ *
+ * Render the calendar view according to `currentView` (week/month/day).
+ * This function translates `scheduledBlocks` and `events` into DOM blocks
+ * placed inside the `#calendar` container. 
+ * DOM - Document Object Models
+ */
 function renderCalendar() {
     if (currentView === 'month') renderMonthView();
     else renderTimeGrid(currentView === 'day' ? 1 : 7);
 }
 
-// ── Time Grid (Week & Day) ─────────────────────────────────────────────────
+// Time Grid (Week & Day) 
 function renderTimeGrid(numDays) {
     const cal = document.getElementById('calendar');
     cal.innerHTML = '';
@@ -750,7 +818,7 @@ function renderTimeGrid(numDays) {
 function timeFrac(d) { return (d.getHours() - START_HOUR) + d.getMinutes() / 60; }
 function dayIndex(d) { return d.getDay() === 0 ? 6 : d.getDay() - 1; }
 
-// ── Month View ─────────────────────────────────────────────────────────────
+//  Month View 
 function renderMonthView() {
     const cal = document.getElementById('calendar');
     cal.innerHTML = '';
@@ -849,9 +917,17 @@ function renderMonthView() {
     cal.appendChild(wrap);
 }
 
-// ══════════════════════════════════════════
+
 // TASK / ARCHIVE PANEL
-// ══════════════════════════════════════════
+
+/**
+ * renderTaskList
+ *
+ * Render either the tasks list, events list, or archived items depending
+ * on the `tab` parameter. 
+ *
+ * @param {string} tab - 'tasks' | 'events' | 'archive'
+ */
 function renderTaskList(tab = 'tasks') {
     const el      = document.getElementById('task-list');
     const subhead = document.getElementById('task-list-subheader');
@@ -988,9 +1064,9 @@ function renderItem(item, container, isArchive) {
     container.appendChild(card);
 }
 
-// ══════════════════════════════════════════
+
 // DETAIL POPOVER
-// ══════════════════════════════════════════
+
 function showPopover(item, e) {
     const pop     = document.getElementById('detail-popover');
     const dot     = document.getElementById('popover-dot');
@@ -1006,7 +1082,7 @@ function showPopover(item, e) {
     const isHappeningNow = isSession && (now >= item.startTime && now <= item.endTime);
 
     dot.style.background = catColor(targetItem.category);
-    title.textContent    = item.name; // Keep the specific block name (e.g., Session 1)
+    title.textContent    = item.name; // Keep the specific block name (Session 1)
     body.innerHTML       = '';
     footer.innerHTML     = '';
 
@@ -1143,7 +1219,7 @@ function btn(cls, label, handler) {
     return b;
 }
 
-// ── Demo Data ──────────────────────────────────────────────────────────────
+//  Demo Data 
 function seedDemoData() {
     const mon = new Date();
     snapToMonday(mon);
@@ -1312,7 +1388,7 @@ function loadState() {
     }
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+//  Helpers 
 function fmtTime(d) {
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }

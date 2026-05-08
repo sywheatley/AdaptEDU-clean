@@ -4,8 +4,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
@@ -59,7 +62,7 @@ public class ScheduleController {
         Scheduler scheduler = new Scheduler();
         
         // Load the fixed events directly from the fresh CSV storage
-        List<Event> fixedEvents = Scheduler.loadEventsFromCSV(EVENTS_CSV);
+        List<Event> fixedEvents = loadEventsFromCsv(EVENTS_CSV);
         
         // Setup a dynamic scheduling window starting from now (rounded to nearest 15 mins)
         LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
@@ -74,7 +77,45 @@ public class ScheduleController {
         LocalDateTime scheduleEnd = scheduleStart.withHour(endHour).withMinute(0);
         
         // Run the algorithm
-        return scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd, TASKS_CSV, startHour, endHour);
+        return scheduler.generateSchedule(fixedEvents, scheduleStart, scheduleEnd, TASKS_CSV);
+    }
+
+    private List<Event> loadEventsFromCsv(String filePath) {
+        List<Event> loadedEvents = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line = reader.readLine();
+            while ((line = reader.readLine()) != null) {
+                String[] values = line.split(",", -1);
+                if (values.length >= 7) {
+                    try {
+                        LocalDateTime start = LocalDateTime.parse(values[1]);
+                        Event event = new Event(
+                                values[0],
+                                start,
+                                start,
+                                LocalDateTime.parse(values[2]),
+                                Integer.parseInt(values[3]),
+                                values[4],
+                                Integer.parseInt(values[5]),
+                                values[6]);
+                        if (values.length > 7 && !values[7].isEmpty()) {
+                            event.setCategory(values[7]);
+                        }
+                        if (values.length > 8 && !values[8].isEmpty()) {
+                            event.setDescription(values[8]);
+                        }
+                        loadedEvents.add(event);
+                    } catch (Exception e) {
+                        System.err.println("Skipping invalid event row: " + line);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Warning: Could not load events from " + filePath + " (" + e.getMessage() + ")");
+        }
+
+        return loadedEvents;
     }
 
     // --- CSV Writing Helpers ---

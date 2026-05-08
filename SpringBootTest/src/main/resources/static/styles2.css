@@ -1,3 +1,15 @@
+/*
+ * styles2.css — UI styles for AdaptEDU
+ *
+ * Purpose: Defines color tokens, layout, responsive rules, and component
+ * styles used by `index2.html` and the client-side script (`script2.js`).
+ *
+ * Notes for contributors:
+ * - Category colors are defined as CSS variables in :root and used
+ *   throughout for consistent theming.
+ * - Theme variants (body.theme-*) override token values for user themes.
+ * - Avoid moving or renaming CSS variables without updating `script2.js`.
+ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 :root {

@@ -1,3 +1,7 @@
+## for local development of AdaptEDU
+##
+## Defines a single service `adaptedu` built from the repository Dockerfile.
+##  UI is at http://localhost:8080
 services:
   adaptedu:
     build:

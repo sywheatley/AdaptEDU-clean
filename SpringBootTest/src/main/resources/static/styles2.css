@@ -1,14 +1,5 @@
 /*
- * styles2.css — UI styles for AdaptEDU
- *
- * Purpose: Defines color tokens, layout, responsive rules, and component
- * styles used by `index2.html` and the client-side script (`script2.js`).
- *
- * Notes for contributors:
- * - Category colors are defined as CSS variables in :root and used
- *   throughout for consistent theming.
- * - Theme variants (body.theme-*) override token values for user themes.
- * - Avoid moving or renaming CSS variables without updating `script2.js`.
+ * UI styles for AdaptEDU
  */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -24,7 +15,7 @@
     --text-secondary: #a0a0b8;
     --text-muted:   #606078;
 
-    /* Category palette — Soft Pastels */
+    /* Soft Pastels */
     --cat-school:   #82b1ff;   /* pastel blue */
     --cat-work:     #a5d6a7;   /* pastel green */
     --cat-personal: #ce93d8;   /* pastel purple */
@@ -89,9 +80,9 @@ body {
     min-height: 0;
 }
 
-/* ══════════════════════════════════════════
+/* 
    TOP BAR
-══════════════════════════════════════════ */
+*/
 .top-bar {
     display: flex;
     align-items: center;
@@ -193,9 +184,9 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .accent-btn:hover { opacity: 0.85; }
 
-/* ══════════════════════════════════════════
+/* 
    MAIN LAYOUT
-══════════════════════════════════════════ */
+*/
 .main-body {
     display: flex;
     flex: 1;
@@ -203,7 +194,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     overflow: hidden;
 }
 
-/* ── Sidebar ───────────────────────────── */
+/* Sidebar */
 .sidebar {
     width: 210px;
     background: var(--bg-panel);
@@ -322,7 +313,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .category-bar-fill.extracurricular { background: var(--cat-extracurricular); }
 .category-bar-fill.other { background: var(--cat-other); }
 
-/* ── Content area ──────────────────────── */
+/*  Content area  */
 .content-area {
     display: flex;
     flex: 1;
@@ -337,7 +328,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     overflow-x: hidden;
 }
 
-/* ── Task / Archive panel ──────────────── */
+/*  Task / Archive panel  */
 .task-list-panel {
     width: 290px;
     background: var(--bg-panel);
@@ -383,7 +374,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     padding: 6px 10px;
 }
 
-/* ── Task / Event cards ────────────────── */
+/*  Task / Event cards  */
 .task-card, .event-card {
     background: var(--bg-card);
     border: 1px solid var(--border-light);
@@ -459,9 +450,9 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     line-height: 1.6;
 }
 
-/* ══════════════════════════════════════════
+/* 
    CALENDAR GRID (WEEK / DAY)
-══════════════════════════════════════════ */
+ */
 .calendar-wrapper {
     display: flex;
     flex-direction: column;
@@ -541,7 +532,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .cal-day-col.today-col { background-color: rgba(79,142,247,0.025); }
 
-/* ── Calendar blocks ───────────────────── */
+/*  Calendar blocks  */
 .cal-block {
     position: absolute;
     left: 3px; right: 3px;
@@ -595,7 +586,6 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .cal-block .block-title { font-weight: 600; line-height: 1.3; }
 .cal-block .block-time  { font-size: 10px; opacity: 0.75; margin-top: 1px; }
 
-/* Task blocks look slightly different */
 .cal-block.task-block {
     border-style: dashed;
     border-width: 1px;
@@ -616,9 +606,9 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     background: var(--accent-red);
 }
 
-/* ══════════════════════════════════════════
+/* 
    MONTH VIEW
-══════════════════════════════════════════ */
+ */
 .month-wrapper { display: flex; flex-direction: column; height: 100%; }
 
 .month-header-row {
@@ -708,9 +698,9 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .month-more:hover { color: var(--accent); }
 
-/* ══════════════════════════════════════════
+/* 
    DETAIL POPOVER
-══════════════════════════════════════════ */
+ */
 .detail-popover {
     position: fixed;
     background: var(--bg-panel);
@@ -791,9 +781,9 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 .btn-archive  { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
 .btn-delete   { background: rgba(255,69,58,0.15); color: var(--accent-red); border: 1px solid rgba(255,69,58,0.3); }
 
-/* ══════════════════════════════════════════
-   MODALS
-══════════════════════════════════════════ */
+/* 
+   FIELDS/MODALS
+ */
 .modal-overlay {
     position: fixed; inset: 0;
     background: rgba(10,10,18,0.75);
@@ -883,9 +873,9 @@ button { cursor: pointer; border: none; font-family: var(--font); }
     border-bottom-right-radius: 12px;
 }
 
-/* ══════════════════════════════════════════
+/* 
    POMODORO TIMER
-══════════════════════════════════════════ */
+ */
 .pomodoro-wrapper { position: relative; }
 
 .pomodoro-popup {
@@ -969,7 +959,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .pomo-skip-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
 
-/* ── Pomodoro Theme Selector ──────────────── */
+/*  Pomodoro Theme Selector  */
 .pomo-theme-selector {
     display: flex; gap: 12px; margin-top: 40px;
 }
@@ -1103,7 +1093,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 }
 .mobile-panel-toggle:hover { background: var(--bg-hover); }
 
-/* ------------- MOBILE RESPONSIVENESS ------------- */
+/*  MOBILE ADAPTATION  */
 @media (max-width: 850px) {
     .mobile-panel-toggle { display: block; }
 
@@ -1116,7 +1106,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 
     /* Make sidebar take full width and allow it to shrink/grow properly */
     .sidebar {
-        display: none; /* Hidden by default */
+        display: none; 
         width: 100%;
         height: auto;
         border-right: none;
@@ -1130,7 +1120,7 @@ button { cursor: pointer; border: none; font-family: var(--font); }
 
     /* Task list falls below the calendar */
     .task-list-panel {
-        display: none; /* Hidden by default */
+        display: none;
         width: 100%;
         border-left: none;
         border-top: 1px solid var(--border);
